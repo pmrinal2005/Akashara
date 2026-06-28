@@ -121,6 +121,18 @@ body {
   }
 }
 
+@keyframes inspectorIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-inspector-in {
+  animation: inspectorIn 180ms ease-out both;
+}
+
+/* subtle row affordance while paused */
+.vgrid-viewport.is-paused .vrow { cursor: pointer; }
+.vgrid-viewport.is-paused .vrow:hover { background: #111c33; }
+
 /* status pills */
 .pill {
   display: inline-block;

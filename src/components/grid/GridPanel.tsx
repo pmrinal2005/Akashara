@@ -6,6 +6,7 @@ import { useViewVersion } from '../../hooks/useViewVersion'
 import { useKpiSnapshot } from '../../hooks/useStreamSnapshot'
 import { VirtualGrid } from './VirtualGrid'
 import { PauseOverlay } from '../shell/PauseOverlay'
+import { RowInspector } from '../inspector/RowInspector'
 
 export function GridPanel() {
   useViewVersion() // re-evaluate empty state on view changes
@@ -48,6 +49,7 @@ export function GridPanel() {
           </div>
         )}
       </div>
+      <RowInspector />
     </section>
   )
 }

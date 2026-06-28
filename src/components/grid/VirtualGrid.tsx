@@ -82,6 +82,14 @@ export function VirtualGrid() {
         slots.push({ el: row, cells, uid: null })
       }
       slotsRef.current = slots
+      windowEl.onclick = (ev) => {
+        if (!bufferQueue.isPaused()) return
+        const target = ev.target as HTMLElement
+        const rowEl = target.closest('.vrow') as HTMLDivElement | null
+        if (!rowEl) return
+        const slot = slotsRef.current.find((s) => s.el === rowEl)
+        if (slot && slot.uid) inspectorStore.open(slot.uid)
+      }
     }
 
     buildPool()
