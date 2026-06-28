@@ -2,6 +2,11 @@
  * KPI STRIP  (Feature 1 — KPI Dashboard)
  *  Bound to the engine's incrementally-maintained KPI snapshot via
  *  useSyncExternalStore. tabular-nums locks column width during digit changes.
+ *
+ *  Visual model matches the reference dashboard mockups: each card is a dark
+ *  rounded tile with a small uppercase label + icon at the top and a large
+ *  coloured numeric below. Responsive: 2 cols on phone, 3 on tablet, 6 on
+ *  desktop.
  */
 import { useKpiSnapshot } from '../../hooks/useStreamSnapshot'
 import { formatCompactCurrency, formatInt } from '../../core/Sanitizer'
@@ -15,11 +20,14 @@ interface CardProps {
 
 function Card({ label, value, accent, icon }: CardProps) {
   return (
-    <div className="flex flex-col rounded-lg border border-base-600 bg-base-800 px-4 py-3">
-      <span className="mb-1 text-[11px] uppercase tracking-wider text-slate-400">
-        {icon} {label}
+    <div className="kpi-card group relative overflow-hidden rounded-lg border border-base-600 bg-base-800 px-4 py-3 transition-colors hover:border-accent/40">
+      <span className="mb-1 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
+        <span className="text-base leading-none">{icon}</span>
+        {label}
       </span>
-      <span className={`tnum text-xl font-bold ${accent ?? 'text-white'}`}>{value}</span>
+      <span className={`tnum block text-2xl font-bold leading-tight ${accent ?? 'text-white'}`}>
+        {value}
+      </span>
     </div>
   )
 }
@@ -31,7 +39,7 @@ export function KpiStrip() {
     <section
       id="kpi-strip"
       aria-label="Key performance indicators"
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+      className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6"
     >
       <Card icon="📊" label="Total Projects" value={formatInt(kpi.totalRows)} accent="text-accent-soft" />
       <Card icon="🤖" label="Robots Deployed" value={formatInt(kpi.totalRobots)} accent="text-accent" />

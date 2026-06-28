@@ -12,6 +12,7 @@ import { FuzzySearchBar } from './components/controls/FuzzySearchBar'
 import { FilterDropdowns } from './components/controls/FilterDropdowns'
 import { WidgetGate, VisibilityControls } from './components/shell/WidgetVisibility'
 import { DebugOverlay } from './components/shell/DebugOverlay'
+import { RowInspector } from './components/inspector/RowInspector'
 
 function useDebugFlag(): boolean {
   const [on] = useState(() => new URLSearchParams(location.search).get('debug') === '1')
@@ -27,6 +28,14 @@ export default function App() {
     ingestor.start(undefined, (msg) => setError(msg))
   }, [])
 
+  // Periodically refresh active search results so newly arriving rows that
+  // match the query become visible without the user re-typing.
+  useEffect(() => {
+    const t = setInterval(() => workerBridge.refreshIfActive(), 2000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Clean worker teardown on full page unload (page lifecycle).
   useEffect(() => {
     const handler = () => workerBridge.destroy()
     window.addEventListener('pagehide', handler)
@@ -34,15 +43,17 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-white">
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
+      <header className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+        <div className="flex items-center gap-2">
+          <h1 className="text-base font-bold text-white sm:text-lg">
             🤖 RPA Telemetry Monitor
-            <span className="ml-2 text-xs font-normal text-slate-500">Frontend Battle 2026</span>
           </h1>
+          <span className="hidden text-xs font-normal text-slate-500 sm:inline">
+            Frontend Battle 2026
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <VisibilityControls layout={layout} toggle={toggle} reset={reset} />
           <PausePlay />
           <AnalyticsToggle />
@@ -55,25 +66,34 @@ export default function App() {
         </div>
       )}
 
-      <WidgetGate show={layout.kpiVisible}><KpiStrip /></WidgetGate>
+      <WidgetGate show={layout.kpiVisible}>
+        <KpiStrip />
+      </WidgetGate>
 
       <WidgetGate show={layout.filtersVisible}>
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-base-600 bg-base-800 p-2">
+        <div className="flex flex-col gap-2 rounded-lg border border-base-600 bg-base-800 p-2 sm:flex-row sm:items-center">
           <FuzzySearchBar />
-          <FilterDropdowns />
+          <div className="flex flex-wrap items-center gap-2 overflow-x-auto sm:flex-nowrap">
+            <FilterDropdowns />
+          </div>
         </div>
       </WidgetGate>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
         <WidgetGate show={layout.gridVisible}>
-          <div className="flex min-h-0 flex-1 flex-col lg:basis-2/3"><GridPanel /></div>
+          <div className="flex min-h-0 flex-1 flex-col lg:basis-2/3">
+            <GridPanel />
+          </div>
         </WidgetGate>
         <WidgetGate show={layout.chartVisible}>
-          <div className="min-h-0 lg:basis-1/3"><DepartmentChart /></div>
+          <div className="min-h-0 lg:basis-1/3">
+            <DepartmentChart />
+          </div>
         </WidgetGate>
       </div>
 
       <AnalyticsView />
+      <RowInspector />
 
       {debug && <DebugOverlay />}
     </div>

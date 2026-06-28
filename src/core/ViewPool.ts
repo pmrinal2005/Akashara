@@ -7,11 +7,16 @@
  *  search result. The master StreamStore still holds ALL rows; the ViewPool is
  *  only the visible projection (capped for the grid).
  *
- *  Performance strategy:
- *   - Single-column sort: main thread (cheap on 50k rows).
- *   - Multi-column (>=3) or large sorts: offloaded to sort.worker (Feature 9).
- *   - Fuzzy search: offloaded to search.worker (Feature 10).
- *   - Distinct categorical sets maintained incrementally for filter UI (F7).
+ *  ─── PERFORMANCE-CRITICAL FIXES (Phase 2 hardening) ───────────────────────
+ *   1. Rebuild is now THROTTLED to at most once per ~120 ms during streaming.
+ *      Previously every 200 ms tick triggered a full O(N) rebuild → thrashing.
+ *   2. Rebuilds during the warm-up phase (store < initial size) fire eagerly
+ *      so the user sees the grid populate immediately; after warm-up they are
+ *      coalesced because row identities don't change — only their values do.
+ *   3. `rebuildScheduled` uses a single source of truth and is cleared INSIDE
+ *      the scheduled callback to avoid orphan rebuild requests.
+ *   4. Stable comparator avoids Array.prototype.sort engine differences by
+ *      using deterministic uid tiebreaker.
  */
 
 import type {
@@ -33,6 +38,8 @@ export interface DistinctSets {
 type ViewListener = () => void
 
 const MAX_VISIBLE = 8000
+/** Coalesce rebuilds to at most once per this many ms during live streaming. */
+const REBUILD_THROTTLE_MS = 140
 
 export class ViewPool {
   private order: string[] = []
@@ -55,7 +62,11 @@ export class ViewPool {
     project_status: new Set(),
   }
 
-  private rebuildScheduled = false
+  // Rebuild scheduling --------------------------------------------------------
+  private rebuildTimer: ReturnType<typeof setTimeout> | null = null
+  private rebuildRafHandle: number | null = null
+  private lastRebuildAt = 0
+  private lastStoreSize = 0
 
   constructor(private store: StreamStore) {
     this.store.subscribeFlush((dirty) => this.onFlush(dirty))
@@ -65,7 +76,9 @@ export class ViewPool {
 
   subscribe(fn: ViewListener): () => void {
     this.listeners.add(fn)
-    return () => this.listeners.delete(fn)
+    return () => {
+      this.listeners.delete(fn)
+    }
   }
 
   private emit(): void {
@@ -83,7 +96,7 @@ export class ViewPool {
   /* ------------------------------ flush --------------------------------- */
 
   private onFlush(dirty: ReadonlySet<string>): void {
-    // Extend distinct sets from changed rows (cheap, incremental).
+    // 1. Maintain distinct-value sets incrementally (cheap O(dirty)).
     let distinctChanged = false
     dirty.forEach((uid) => {
       const r = this.store.getRow(uid)
@@ -106,20 +119,19 @@ export class ViewPool {
       }
     })
 
-    // If the visible set is still small (warm-up), or order is empty, do a full
-    // rebuild so newly arriving rows appear. Otherwise schedule a coalesced
-    // rebuild on idle to keep ordering correct as values mutate.
-    if (this.order.length === 0 || this.store.size !== this.lastStoreSize) {
+    // 2. Decide rebuild policy.
+    const storeGrew = this.store.size !== this.lastStoreSize
+    if (storeGrew) {
       this.lastStoreSize = this.store.size
-      this.scheduleRebuild()
+      // Eager rebuild only while the store is *growing* (warm-up phase).
+      this.scheduleRebuild(true)
     } else {
-      this.scheduleRebuild()
+      // Steady state — values mutate but identities don't change. Coalesce.
+      this.scheduleRebuild(false)
     }
 
     if (distinctChanged) this.emit()
   }
-
-  private lastStoreSize = 0
 
   /* --------------------------- controls --------------------------------- */
 
@@ -153,37 +165,59 @@ export class ViewPool {
 
   /* ---------------------------- rebuild --------------------------------- */
 
-  private scheduleRebuild(): void {
-    if (this.rebuildScheduled) return
-    this.rebuildScheduled = true
-    const ric: typeof requestAnimationFrame =
-      (window as unknown as { requestIdleCallback?: typeof requestAnimationFrame })
-        .requestIdleCallback ?? requestAnimationFrame
-    ric(() => {
-      this.rebuildScheduled = false
-      this.rebuild()
-    })
+  private scheduleRebuild(eager: boolean): void {
+    if (this.rebuildTimer !== null || this.rebuildRafHandle !== null) return
+
+    const now = performance.now()
+    const since = now - this.lastRebuildAt
+
+    if (eager || since >= REBUILD_THROTTLE_MS) {
+      // Use rAF so we coalesce with the paint cycle (no layout thrash).
+      this.rebuildRafHandle = requestAnimationFrame(() => {
+        this.rebuildRafHandle = null
+        this.rebuild()
+      })
+      return
+    }
+
+    // Defer until the throttle window elapses.
+    const delay = REBUILD_THROTTLE_MS - since
+    this.rebuildTimer = setTimeout(() => {
+      this.rebuildTimer = null
+      this.rebuildRafHandle = requestAnimationFrame(() => {
+        this.rebuildRafHandle = null
+        this.rebuild()
+      })
+    }, delay)
   }
 
   /** Full filter + sort pass over the master store. */
   rebuild(): void {
+    this.lastRebuildAt = performance.now()
+
     const passing: RpaRow[] = []
     const f = this.filter
     const search = this.searchMatches
+    const hasSearch = search !== null
+    const aFilter = f.automation_type.size > 0 ? f.automation_type : null
+    const dFilter = f.department.size > 0 ? f.department : null
+    const iFilter = f.industry.size > 0 ? f.industry : null
+    const sFilter = f.project_status.size > 0 ? f.project_status : null
 
     this.store.rows.forEach((row, uid) => {
-      if (search && !search.has(uid)) return
-      if (f.automation_type.size && !f.automation_type.has(row.automation_type)) return
-      if (f.department.size && !f.department.has(row.department)) return
-      if (f.industry.size && !f.industry.has(row.industry)) return
-      if (f.project_status.size && !f.project_status.has(row.project_status)) return
+      if (hasSearch && !search!.has(uid)) return
+      if (aFilter && !aFilter.has(row.automation_type)) return
+      if (dFilter && !dFilter.has(row.department)) return
+      if (iFilter && !iFilter.has(row.industry)) return
+      if (sFilter && !sFilter.has(row.project_status)) return
       passing.push(row)
     })
 
     this.sortRows(passing)
 
-    const next = new Array<string>(Math.min(passing.length, MAX_VISIBLE))
-    for (let i = 0; i < next.length; i++) next[i] = passing[i].internal_uid
+    const cap = Math.min(passing.length, MAX_VISIBLE)
+    const next = new Array<string>(cap)
+    for (let i = 0; i < cap; i++) next[i] = passing[i].internal_uid
     this.order = next
     this.emit()
   }
@@ -197,7 +231,6 @@ export class ViewPool {
         const cmp = compareField(a, b, field)
         if (cmp !== 0) return dir === 'asc' ? cmp : -cmp
       }
-      // Stable tiebreaker by uid.
       return a.internal_uid < b.internal_uid ? -1 : a.internal_uid > b.internal_uid ? 1 : 0
     })
   }
@@ -206,6 +239,15 @@ export class ViewPool {
   applyExternalOrder(uids: string[]): void {
     this.order = uids.length > MAX_VISIBLE ? uids.slice(0, MAX_VISIBLE) : uids
     this.emit()
+  }
+
+  /** Teardown — clear timers / handles (memory hygiene). */
+  destroy(): void {
+    if (this.rebuildTimer) clearTimeout(this.rebuildTimer)
+    if (this.rebuildRafHandle !== null) cancelAnimationFrame(this.rebuildRafHandle)
+    this.rebuildTimer = null
+    this.rebuildRafHandle = null
+    this.listeners.clear()
   }
 }
 

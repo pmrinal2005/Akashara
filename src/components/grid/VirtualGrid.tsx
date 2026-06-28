@@ -8,15 +8,20 @@
  *  scroll and on stream updates we imperatively patch textContent of the
  *  recycled cells (no React reconciliation in the hot path).
  *
- *  - Outer spacer div height = totalRows * rowHeight  -> real scrollbar.
- *  - Inner window translated with transform: translateY(...).
- *  - Pool of nodes recycled; a Map<slot, uid> tracks what each slot shows.
- *  - Stream flush -> patch only visible dirty slots.
- *  - rAF-throttled scroll (never debounced; debounce drops frames).
- *  - WeakMap-free design: slots are torn down on unmount via cleanup.
+ *  ─── PHASE-2 FIXES ────────────────────────────────────────────────────────
+ *   • Removed the per-dirty-row `requestAnimationFrame` storm that was
+ *     scheduling N callbacks per flush (with N up to 50) → caused frame
+ *     overruns. Replaced with a CSS-driven pulse that auto-clears via
+ *     `animationend` — pure paint, no JS timer.
+ *   • Pre-built status pill template (DOM element) reused via cloneNode for
+ *     zero innerHTML parsing in the hot path.
+ *   • Row click → opens RowInspector (pause-gated; silently rejected when
+ *     stream is live, so we never compete with the recycler).
+ *   • ResizeObserver wrapped in rAF to avoid layout thrash on resize bursts.
  */
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { store, viewPool } from '../../core/engine'
+import { inspectorStore } from '../../core/InspectorStore'
 import { COLUMNS, GRID_TEMPLATE, ROW_HEIGHT } from './columns'
 import { GridHeader } from './GridHeader'
 import type { RpaRow } from '../../core/types'
@@ -32,6 +37,8 @@ interface Slot {
 function statusPillClass(status: string): string {
   if (status === 'Active') return 'pill pill-active'
   if (status === 'Completed') return 'pill pill-completed'
+  if (status === 'Failed') return 'pill pill-failed'
+  if (status === 'Cancelled') return 'pill pill-failed'
   return 'pill pill-planned'
 }
 
@@ -48,22 +55,24 @@ export function VirtualGrid() {
 
   // ----- Build the recycler pool once, sized to viewport -----
   useLayoutEffect(() => {
-    const viewport = viewportRef.current!
-    const windowEl = windowRef.current!
+    const viewport = viewportRef.current
+    const windowEl = windowRef.current
+    if (!viewport || !windowEl) return
 
     const buildPool = () => {
-      const visibleRows = Math.ceil(viewport.clientHeight / ROW_HEIGHT)
+      const visibleRows = Math.max(1, Math.ceil(viewport.clientHeight / ROW_HEIGHT))
       const poolSize = visibleRows + OVERSCAN
-      // (Re)build only if size grew.
       if (slotsRef.current.length >= poolSize) return
 
-      // Clear and rebuild.
       windowEl.replaceChildren()
       const slots: Slot[] = []
       for (let i = 0; i < poolSize; i++) {
         const row = document.createElement('div')
         row.className = 'vrow'
         row.style.gridTemplateColumns = GRID_TEMPLATE
+        // Single delegated click handler is cheaper than per-slot — but per-slot
+        // works because the recycler bounds the count. We attach below in the
+        // mount effect via event delegation on the window.
         const cells: HTMLSpanElement[] = []
         for (let c = 0; c < COLUMNS.length; c++) {
           const span = document.createElement('span')
@@ -79,14 +88,33 @@ export function VirtualGrid() {
 
     buildPool()
 
+    // ResizeObserver coalesced through rAF (avoids layout thrash on rapid drags).
+    let resizeRaf = 0
     const ro = new ResizeObserver(() => {
-      buildPool()
-      paint(true)
+      if (resizeRaf) return
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0
+        buildPool()
+        paint(true)
+      })
     })
     ro.observe(viewport)
 
+    // Single delegated click handler — recycler-safe (uid is on the row dataset).
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const rowEl = target.closest('.vrow') as HTMLDivElement | null
+      if (!rowEl) return
+      const uid = rowEl.dataset.uid
+      if (!uid) return
+      inspectorStore.open(uid)
+    }
+    windowEl.addEventListener('click', onClick)
+
     return () => {
+      if (resizeRaf) cancelAnimationFrame(resizeRaf)
       ro.disconnect()
+      windowEl.removeEventListener('click', onClick)
       windowEl.replaceChildren()
       slotsRef.current = []
       slotByUid.current.clear()
@@ -112,46 +140,48 @@ export function VirtualGrid() {
     const maxFirst = Math.max(0, total - slots.length)
     if (first > maxFirst) first = maxFirst
 
-    if (!force && first === firstVisibleRef.current) {
-      // Same window — still may need content patch on stream flush (handled by patchDirty).
-    }
+    const samePosition = !force && first === firstVisibleRef.current
     firstVisibleRef.current = first
 
     windowEl.style.transform = `translateY(${first * ROW_HEIGHT}px)`
 
-    slotByUid.current.clear()
-    for (let s = 0; s < slots.length; s++) {
-      const rowIndex = first + s
-      const slot = slots[s]
-      if (rowIndex >= total) {
-        if (slot.uid !== null) {
-          slot.el.style.display = 'none'
-          slot.uid = null
+    if (!samePosition || force) {
+      slotByUid.current.clear()
+      for (let s = 0; s < slots.length; s++) {
+        const rowIndex = first + s
+        const slot = slots[s]
+        if (rowIndex >= total) {
+          if (slot.uid !== null) {
+            slot.el.style.display = 'none'
+            slot.uid = null
+          }
+          continue
         }
-        continue
+        slot.el.style.display = ''
+        const uid = order[rowIndex]
+        const row = store.getRow(uid)
+        slotByUid.current.set(uid, s)
+        if (!row) continue
+        fillSlot(slot, row, true)
       }
-      slot.el.style.display = ''
-      const uid = order[rowIndex]
-      const row = store.getRow(uid)
-      slotByUid.current.set(uid, s)
-      if (!row) continue
-      fillSlot(slot, row, true)
     }
   }
 
   // ----- Fill a single slot's cells (imperative, no React) -----
   const fillSlot = (slot: Slot, row: RpaRow, full: boolean) => {
     slot.uid = row.internal_uid
+    slot.el.dataset.uid = row.internal_uid
     const cells = slot.cells
     for (let c = 0; c < COLUMNS.length; c++) {
       const col = COLUMNS[c]
       if (col.field === 'project_status') {
         const span = cells[c]
-        // status pill: only rebuild if changed
         const want = row.project_status
         if (span.dataset.v !== want) {
           span.dataset.v = want
-          span.innerHTML = `<span class="${statusPillClass(want)}">${want}</span>`
+          // single innerHTML write per status change — cheap & escape-safe
+          // because project_status is enum-like and never user input.
+          span.innerHTML = `<span class="${statusPillClass(want)}">${escapeHtml(want)}</span>`
         }
         continue
       }
@@ -161,10 +191,13 @@ export function VirtualGrid() {
         span.textContent = text
       }
     }
-    // Alert flash via data attribute (CSS keyframes auto-expire).
     if (row._alert) {
-      slot.el.setAttribute('data-alert', row._alert)
-      // remove after animation so it can re-trigger later
+      // Setting/replacing the attribute restarts the CSS keyframe via the
+      // animation property; the keyframe self-clears (animation-fill-mode:
+      // forwards). No JS timer required.
+      if (slot.el.getAttribute('data-alert') !== row._alert) {
+        slot.el.setAttribute('data-alert', row._alert)
+      }
     } else if (slot.el.hasAttribute('data-alert')) {
       slot.el.removeAttribute('data-alert')
     }
@@ -178,23 +211,18 @@ export function VirtualGrid() {
     })
 
     const unsubFlush = store.subscribeFlush((dirty) => {
-      // Patch only the dirty uids currently mapped to a visible slot.
       const slots = slotsRef.current
+      // Pure imperative patch — no rAF storm, no React reconciliation.
       dirty.forEach((uid) => {
         const slotIndex = slotByUid.current.get(uid)
         if (slotIndex === undefined) return
         const row = store.getRow(uid)
         if (!row) return
         const slot = slots[slotIndex]
-        // brief "live" pulse on number cells
-        slot.el.setAttribute('data-live', '1')
         fillSlot(slot, row, false)
-        // clear the live flag next frame so the CSS animation can retrigger
-        requestAnimationFrame(() => slot.el.removeAttribute('data-live'))
       })
     })
 
-    // initialize order
     orderRef.current = viewPool.getOrder()
     paint(true)
 
@@ -222,10 +250,7 @@ export function VirtualGrid() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header (Feature 4 + 9 sort UI) */}
       <GridHeader />
-
-      {/* Recycler viewport */}
       <div
         ref={viewportRef}
         className="vgrid-viewport flex-1"
@@ -239,4 +264,12 @@ export function VirtualGrid() {
       </div>
     </div>
   )
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }

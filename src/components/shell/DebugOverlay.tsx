@@ -4,34 +4,32 @@
  *  of DOM nodes inside [role="rowgroup"] (must stay bounded ~25-45 regardless
  *  of dataset size), the visible/total row counts, and rows/sec throughput.
  *  A MutationObserver self-check warns loudly if the recycler ever leaks nodes.
+ *
+ *  ─── PHASE-2 FIX ──────────────────────────────────────────────────────────
+ *  The previous implementation chained `requestAnimationFrame` → `setTimeout`
+ *  → `requestAnimationFrame` in a way that leaked timers on unmount and never
+ *  actually cancelled the next iteration. Replaced with a clean interval.
  */
 import { useEffect, useState } from 'react'
 import { store, viewPool } from '../../core/engine'
 
 export function DebugOverlay() {
-  const [stats, setStats] = useState({ domRows: 0, visible: 0, total: 0, store: 0 })
+  const [stats, setStats] = useState({ domRows: 0, visible: 0, store: 0 })
 
   useEffect(() => {
-    const ctrl = new AbortController()
-    let raf = 0
-
-    const tick = () => {
+    const interval = setInterval(() => {
       const group = document.querySelector('[role="rowgroup"] .vgrid-window')
-      const domRows = group ? group.childElementCount : 0
       setStats({
-        domRows,
+        domRows: group ? group.childElementCount : 0,
         visible: viewPool.visibleCount,
-        total: viewPool.visibleCount,
         store: store.size,
       })
-      raf = requestAnimationFrame(() => setTimeout(tick, 500) as unknown as number)
-    }
-    tick()
+    }, 500)
 
-    // Self-check: warn if DOM rows ever exceed a sane bound.
+    let mo: MutationObserver | null = null
     const group = document.querySelector('[role="rowgroup"] .vgrid-window')
     if (group) {
-      const mo = new MutationObserver(() => {
+      mo = new MutationObserver(() => {
         if (group.childElementCount > 80) {
           // eslint-disable-next-line no-console
           console.error(
@@ -40,12 +38,11 @@ export function DebugOverlay() {
         }
       })
       mo.observe(group, { childList: true })
-      ctrl.signal.addEventListener('abort', () => mo.disconnect())
     }
 
     return () => {
-      cancelAnimationFrame(raf)
-      ctrl.abort()
+      clearInterval(interval)
+      mo?.disconnect()
     }
   }, [])
 
