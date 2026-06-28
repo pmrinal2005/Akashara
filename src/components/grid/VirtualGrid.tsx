@@ -1,24 +1,3 @@
-/**
- * ===========================================================================
- *  VIRTUAL GRID  (Feature 8 — 15 pts, highest weight)
- * ===========================================================================
- *  Android-style RECYCLER VIEW. The DOM holds only
- *  (viewportHeight / rowHeight + overscan) row nodes — typically 25-40 —
- *  REGARDLESS of dataset size. Rows are created ONCE at mount and reused; on
- *  scroll and on stream updates we imperatively patch textContent of the
- *  recycled cells (no React reconciliation in the hot path).
- *
- *  ─── PHASE-2 FIXES ────────────────────────────────────────────────────────
- *   • Removed the per-dirty-row `requestAnimationFrame` storm that was
- *     scheduling N callbacks per flush (with N up to 50) → caused frame
- *     overruns. Replaced with a CSS-driven pulse that auto-clears via
- *     `animationend` — pure paint, no JS timer.
- *   • Pre-built status pill template (DOM element) reused via cloneNode for
- *     zero innerHTML parsing in the hot path.
- *   • Row click → opens RowInspector (pause-gated; silently rejected when
- *     stream is live, so we never compete with the recycler).
- *   • ResizeObserver wrapped in rAF to avoid layout thrash on resize bursts.
- */
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { store, viewPool } from '../../core/engine'
 import { inspectorStore } from '../../core/InspectorStore'
@@ -46,6 +25,7 @@ export function VirtualGrid() {
   const viewportRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
   const windowRef = useRef<HTMLDivElement>(null)
+  const headerScrollRef = useRef<HTMLDivElement>(null)
 
   const slotsRef = useRef<Slot[]>([])
   const firstVisibleRef = useRef(0)
@@ -53,7 +33,6 @@ export function VirtualGrid() {
   const rafScrollRef = useRef<number | null>(null)
   const slotByUid = useRef<Map<string, number>>(new Map())
 
-  // ----- Build the recycler pool once, sized to viewport -----
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     const windowEl = windowRef.current
@@ -70,9 +49,6 @@ export function VirtualGrid() {
         const row = document.createElement('div')
         row.className = 'vrow'
         row.style.gridTemplateColumns = GRID_TEMPLATE
-        // Single delegated click handler is cheaper than per-slot — but per-slot
-        // works because the recycler bounds the count. We attach below in the
-        // mount effect via event delegation on the window.
         const cells: HTMLSpanElement[] = []
         for (let c = 0; c < COLUMNS.length; c++) {
           const span = document.createElement('span')
@@ -88,7 +64,6 @@ export function VirtualGrid() {
 
     buildPool()
 
-    // ResizeObserver coalesced through rAF (avoids layout thrash on rapid drags).
     let resizeRaf = 0
     const ro = new ResizeObserver(() => {
       if (resizeRaf) return
@@ -100,7 +75,6 @@ export function VirtualGrid() {
     })
     ro.observe(viewport)
 
-    // Single delegated click handler — recycler-safe (uid is on the row dataset).
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       const rowEl = target.closest('.vrow') as HTMLDivElement | null
@@ -122,7 +96,6 @@ export function VirtualGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ----- Paint: position the window + fill recycled slots -----
   const paint = (force = false) => {
     const viewport = viewportRef.current
     const windowEl = windowRef.current
@@ -167,7 +140,6 @@ export function VirtualGrid() {
     }
   }
 
-  // ----- Fill a single slot's cells (imperative, no React) -----
   const fillSlot = (slot: Slot, row: RpaRow, full: boolean) => {
     slot.uid = row.internal_uid
     slot.el.dataset.uid = row.internal_uid
@@ -179,8 +151,6 @@ export function VirtualGrid() {
         const want = row.project_status
         if (span.dataset.v !== want) {
           span.dataset.v = want
-          // single innerHTML write per status change — cheap & escape-safe
-          // because project_status is enum-like and never user input.
           span.innerHTML = `<span class="${statusPillClass(want)}">${escapeHtml(want)}</span>`
         }
         continue
@@ -192,9 +162,6 @@ export function VirtualGrid() {
       }
     }
     if (row._alert) {
-      // Setting/replacing the attribute restarts the CSS keyframe via the
-      // animation property; the keyframe self-clears (animation-fill-mode:
-      // forwards). No JS timer required.
       if (slot.el.getAttribute('data-alert') !== row._alert) {
         slot.el.setAttribute('data-alert', row._alert)
       }
@@ -203,7 +170,6 @@ export function VirtualGrid() {
     }
   }
 
-  // ----- Stream flush: patch only visible dirty slots -----
   useEffect(() => {
     const unsubView = viewPool.subscribe(() => {
       orderRef.current = viewPool.getOrder()
@@ -212,7 +178,6 @@ export function VirtualGrid() {
 
     const unsubFlush = store.subscribeFlush((dirty) => {
       const slots = slotsRef.current
-      // Pure imperative patch — no rAF storm, no React reconciliation.
       dirty.forEach((uid) => {
         const slotIndex = slotByUid.current.get(uid)
         if (slotIndex === undefined) return
@@ -233,8 +198,12 @@ export function VirtualGrid() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ----- Scroll handler: rAF-throttled -----
   const onScroll = () => {
+    const viewport = viewportRef.current
+    const headerScroll = headerScrollRef.current
+    if (viewport && headerScroll) {
+      headerScroll.scrollLeft = viewport.scrollLeft
+    }
     if (rafScrollRef.current !== null) return
     rafScrollRef.current = requestAnimationFrame(() => {
       rafScrollRef.current = null
@@ -249,11 +218,18 @@ export function VirtualGrid() {
   }, [])
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <GridHeader />
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <div
+        ref={headerScrollRef}
+        className="min-w-0 overflow-x-hidden border-b border-white/10"
+      >
+        <div style={{ minWidth: 1180 }}>
+          <GridHeader />
+        </div>
+      </div>
       <div
         ref={viewportRef}
-        className="vgrid-viewport flex-1"
+        className="vgrid-viewport flex-1 min-w-0"
         role="rowgroup"
         aria-label="RPA project rows"
         onScroll={onScroll}

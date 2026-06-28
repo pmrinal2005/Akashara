@@ -1,10 +1,3 @@
-/**
- * CATEGORICAL FILTERS  (Feature 7)
- *  Multi-select dropdowns for automation_type, department, industry,
- *  project_status. Distinct values are discovered incrementally by the ViewPool
- *  as rows stream in. Selection is stored as Map<field, Set<value>> -> O(1)
- *  membership test during refilter.
- */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { viewPool } from '../../core/engine'
 import { useViewVersion } from '../../hooks/useViewVersion'
@@ -25,13 +18,11 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const ref = useRef<HTMLDivElement>(null)
 
-  // distinct options derived from ViewPool (recomputed when version bumps)
   const options = useMemo(() => {
     return Array.from(viewPool.distinct[field]).sort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, field])
 
-  // close on outside click
   useEffect(() => {
     if (!open) return
     const ctrl = new AbortController()
@@ -65,27 +56,27 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
       <button
         onClick={() => setOpen((o) => !o)}
         className={
-          'flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors ' +
+          'liquid-glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ' +
           (selected.size
-            ? 'border-accent/60 bg-accent/10 text-accent-soft'
-            : 'border-base-600 bg-base-900 text-slate-300 hover:border-base-500')
+            ? 'text-accent-soft'
+            : 'text-slate-200 hover:text-white')
         }
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         {label}
         {selected.size > 0 && (
-          <span className="tnum rounded-full bg-accent/20 px-1.5 text-[11px]">{selected.size}</span>
+          <span className="tnum rounded-full bg-accent/30 px-1.5 text-[11px]">{selected.size}</span>
         )}
         <span className="text-[10px]">▾</span>
       </button>
 
       {open && (
         <div
-          className="absolute z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-md border border-base-600 bg-base-800 p-1 shadow-2xl"
+          className="liquid-glass-strong glass-scroll absolute z-30 mt-2 max-h-72 w-64 overflow-y-auto rounded-xl p-1"
           role="listbox"
         >
-          <div className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-400">
+          <div className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-300">
             <span>{options.length} options</span>
             {selected.size > 0 && (
               <button onClick={clear} className="text-accent hover:underline">
@@ -94,12 +85,12 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
             )}
           </div>
           {options.length === 0 && (
-            <div className="px-2 py-2 text-xs text-slate-500">waiting for stream…</div>
+            <div className="px-2 py-2 text-xs text-slate-400">waiting for stream…</div>
           )}
           {options.map((opt) => (
             <label
               key={opt}
-              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm text-slate-200 hover:bg-base-700"
+              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm text-slate-100 hover:bg-white/5"
             >
               <input
                 type="checkbox"

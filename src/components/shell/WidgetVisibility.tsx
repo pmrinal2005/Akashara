@@ -1,9 +1,3 @@
-/**
- * WIDGET VISIBILITY  (Feature 6)
- *  - WidgetGate unmounts a hidden widget entirely so it also STOPS subscribing
- *    to the store (memory hygiene), not merely display:none.
- *  - VisibilityControls renders toggle chips persisted to localStorage.
- */
 import type { ReactNode } from 'react'
 import type { LayoutState } from '../../hooks/usePersistedLayout'
 
@@ -28,7 +22,7 @@ const TOGGLES: { key: keyof LayoutState; label: string }[] = [
 export function VisibilityControls({ layout, toggle, reset }: ControlsProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] uppercase tracking-wider text-slate-500">Layout:</span>
+      <span className="text-[11px] uppercase tracking-wider text-slate-400">Layout:</span>
       {TOGGLES.map((t) => {
         const on = layout[t.key]
         return (
@@ -37,10 +31,8 @@ export function VisibilityControls({ layout, toggle, reset }: ControlsProps) {
             onClick={() => toggle(t.key)}
             aria-pressed={on}
             className={
-              'rounded-full border px-2.5 py-1 text-xs transition-colors ' +
-              (on
-                ? 'border-accent/50 bg-accent/15 text-accent-soft'
-                : 'border-base-600 bg-base-900 text-slate-500 line-through')
+              'liquid-glass rounded-full px-2.5 py-1 text-xs transition-colors ' +
+              (on ? 'text-accent-soft' : 'text-slate-500 line-through')
             }
           >
             {t.label}
@@ -49,7 +41,7 @@ export function VisibilityControls({ layout, toggle, reset }: ControlsProps) {
       })}
       <button
         onClick={reset}
-        className="rounded-full border border-base-600 px-2.5 py-1 text-xs text-slate-400 hover:text-white"
+        className="liquid-glass rounded-full px-2.5 py-1 text-xs text-slate-300 hover:text-white"
       >
         reset
       </button>

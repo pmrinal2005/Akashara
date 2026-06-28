@@ -17,8 +17,9 @@ body,
 
 body {
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(56, 189, 248, 0.06), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(167, 139, 250, 0.05), transparent 60%),
+    radial-gradient(1200px 600px at 80% -10%, rgba(56, 189, 248, 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(167, 139, 250, 0.08), transparent 60%),
+    radial-gradient(700px 400px at 50% 50%, rgba(56, 189, 248, 0.04), transparent 70%),
     #020617;
   color: #e2e8f0;
   font-family:
@@ -27,29 +28,96 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tabular numerics everywhere numbers live, so digit changes never reflow. */
 .tnum {
   font-variant-numeric: tabular-nums;
 }
 
-/* Subtle elevation on KPI cards on hover. */
-.kpi-card::before {
+/* ============================================================
+   LIQUID GLASS DESIGN SYSTEM — applied across ALL dashboard UI
+   ============================================================ */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.02);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.12) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.12) 80%,
+    rgba(255, 255, 255, 0.35) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liquid-glass-strong {
+  background: rgba(255, 255, 255, 0.04);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: none;
+  box-shadow: 4px 4px 18px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass-strong::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.2) 80%,
+    rgba(255, 255, 255, 0.5) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.kpi-card {
+  border-radius: 14px;
+}
+.kpi-card::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.05), transparent 60%);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.06), transparent 60%);
   opacity: 0;
   transition: opacity 200ms ease;
+  border-radius: inherit;
 }
-.kpi-card:hover::before {
+.kpi-card:hover::after {
   opacity: 1;
 }
 
-/* ---------------------------------------------------------------------------
-   VIRTUAL GRID  (Feature 8)
-   contain:strict localizes layout/paint to the grid subtree.
---------------------------------------------------------------------------- */
+/* ============================================================
+   VIRTUAL GRID
+   ============================================================ */
 .vgrid-viewport {
   position: relative;
   overflow-y: auto;
@@ -61,7 +129,7 @@ body {
 .vgrid-spacer {
   position: relative;
   width: 100%;
-  min-width: 1100px;
+  min-width: 1180px;
 }
 
 .vgrid-window {
@@ -76,19 +144,21 @@ body {
   display: grid;
   align-items: center;
   height: var(--row-height);
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   padding: 0 4px;
   box-sizing: border-box;
   contain: layout style paint;
   cursor: pointer;
+  background: rgba(255, 255, 255, 0.012);
+  transition: background-color 120ms ease;
 }
 
 .vrow:hover {
-  background: #0b1220;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .vcell {
-  padding: 0 8px;
+  padding: 0 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,7 +172,6 @@ body {
   color: #e2e8f0;
 }
 
-/* live "just updated" pulse — pure CSS, fires on data-live attr changes */
 .vrow[data-live='1'] .vcell-num {
   animation: cellPulse 0.6s ease-out forwards;
 }
@@ -111,9 +180,7 @@ body {
   100% { color: inherit; }
 }
 
-/* ---------------------------------------------------------------------------
-   ALERTS  (Feature 3) — CSS keyframes that auto-expire (no JS timer).
---------------------------------------------------------------------------- */
+/* ALERTS — Feature 3 */
 .vrow[data-alert='warn'] {
   animation: alertFlashWarn 2s ease-out forwards;
 }
@@ -122,60 +189,69 @@ body {
 }
 @keyframes alertFlashWarn {
   0% { background: rgba(251, 191, 36, 0.32); }
-  100% { background: transparent; }
+  100% { background: rgba(255, 255, 255, 0.012); }
 }
 @keyframes alertFlashCrit {
   0% { background: rgba(248, 113, 113, 0.42); }
   50% { background: rgba(248, 113, 113, 0.22); }
-  100% { background: transparent; }
+  100% { background: rgba(255, 255, 255, 0.012); }
 }
 
-/* status pills */
+/* Pills */
 .pill {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
   font-size: 11px;
-  line-height: 1.55;
+  line-height: 1.5;
   font-weight: 500;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .pill-active {
   background: rgba(56, 189, 248, 0.18);
   color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.3);
 }
 .pill-completed {
   background: rgba(74, 222, 128, 0.18);
   color: #86efac;
+  border-color: rgba(74, 222, 128, 0.3);
 }
 .pill-planned {
   background: rgba(148, 163, 184, 0.18);
   color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.3);
 }
 .pill-failed {
   background: rgba(248, 113, 113, 0.22);
   color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
 }
 
-/* off-screen chart panel should not paint */
-.chart-panel {
-  content-visibility: auto;
-  contain-intrinsic-size: 320px;
-}
-
-/* scrollbar styling */
-.vgrid-viewport::-webkit-scrollbar {
+/* Glass scrollbars */
+.vgrid-viewport::-webkit-scrollbar,
+.glass-scroll::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-.vgrid-viewport::-webkit-scrollbar-thumb {
-  background: #334155;
+.vgrid-viewport::-webkit-scrollbar-thumb,
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 6px;
+  backdrop-filter: blur(8px);
 }
-.vgrid-viewport::-webkit-scrollbar-track {
-  background: #0b1220;
+.vgrid-viewport::-webkit-scrollbar-thumb:hover,
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.vgrid-viewport::-webkit-scrollbar-track,
+.glass-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
 }
 
-/* Inspector slide-in animation (used by RowInspector). */
+/* Inspector slide-in */
 @keyframes inspectorIn {
   0% { transform: translateX(20px); opacity: 0; }
   100% { transform: translateX(0); opacity: 1; }
@@ -184,12 +260,45 @@ body {
   animation: inspectorIn 200ms ease-out forwards;
 }
 
-/* Mobile responsiveness: ensure no horizontal overflow on small screens. */
+/* ============================================================
+   MOBILE RESPONSIVE FIXES
+   ============================================================ */
+@media (max-width: 1023px) {
+  .vgrid-spacer {
+    min-width: 1100px;
+  }
+}
+
 @media (max-width: 640px) {
   .vrow {
     height: 40px;
   }
   .vcell {
     font-size: 12px;
+    padding: 0 8px;
   }
+  .vgrid-spacer {
+    min-width: 1080px;
+  }
+}
+
+/* Off-screen chart panels skip paint */
+.chart-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
+}
+
+/* ============================================================
+   LANDING PAGE — Cinematic Space Travel
+   ============================================================ */
+.lp-root {
+  background: #000;
+  color: #fff;
+}
+.font-heading {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+}
+.font-body {
+  font-family: 'Barlow', sans-serif;
 }

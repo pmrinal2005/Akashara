@@ -1,17 +1,10 @@
-/**
- * GRID HEADER  (Feature 4 single-column sort + Feature 9 multi-column sort)
- *  - Plain click: REPLACE sort with this field (toggles asc/desc).
- *  - Shift+click: APPEND this field to the multi-key sort spec.
- *  Numbered badges show multi-column order (1▼, 2▲ ...).
- *  When sort spec has >= 3 keys, the sort is offloaded to the sort worker.
- */
 import { useState } from 'react'
 import { viewPool } from '../../core/engine'
 import { workerBridge } from '../../core/WorkerBridge'
 import { COLUMNS, GRID_TEMPLATE, ROW_HEIGHT } from './columns'
 import type { SortDir, SortSpec, SortableField } from '../../core/types'
 
-const WORKER_THRESHOLD = 3 // >= 3 sort keys -> offload to worker
+const WORKER_THRESHOLD = 3
 
 export function GridHeader() {
   const [sorts, setSorts] = useState<SortSpec[]>(viewPool.getSorts())
@@ -19,9 +12,8 @@ export function GridHeader() {
   const apply = (next: SortSpec[]) => {
     setSorts(next)
     if (next.length >= WORKER_THRESHOLD) {
-      // Keep current order on screen, compute heavy sort off-thread.
-      viewPool.setSort(next) // sets spec; main-thread pass gives an immediate result
-      workerBridge.sortOffloaded(next) // refines via worker (stale-then-fresh)
+      viewPool.setSort(next)
+      workerBridge.sortOffloaded(next)
     } else {
       viewPool.setSort(next)
     }
@@ -31,7 +23,6 @@ export function GridHeader() {
     const existingIdx = sorts.findIndex((s) => s.field === field)
 
     if (e.shiftKey) {
-      // append / toggle within multi-spec
       if (existingIdx === -1) {
         apply([...sorts, { field, dir: 'asc' }])
       } else {
@@ -40,14 +31,13 @@ export function GridHeader() {
         if (cur.dir === 'asc') {
           copy[existingIdx] = { field, dir: 'desc' }
         } else {
-          copy.splice(existingIdx, 1) // third shift-click removes the key
+          copy.splice(existingIdx, 1)
         }
         apply(copy)
       }
       return
     }
 
-    // plain click: replace
     let dir: SortDir = 'asc'
     if (existingIdx !== -1 && sorts.length === 1 && sorts[0].dir === 'asc') dir = 'desc'
     apply([{ field, dir }])
@@ -55,8 +45,15 @@ export function GridHeader() {
 
   return (
     <div
-      className="vrow sticky top-0 z-10 select-none border-b border-base-500 bg-base-800 font-semibold text-accent-soft"
-      style={{ gridTemplateColumns: GRID_TEMPLATE, height: ROW_HEIGHT }}
+      className="vrow select-none font-semibold text-accent-soft"
+      style={{
+        gridTemplateColumns: GRID_TEMPLATE,
+        height: ROW_HEIGHT,
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        cursor: 'default',
+      }}
       role="row"
     >
       {COLUMNS.map((c) => {

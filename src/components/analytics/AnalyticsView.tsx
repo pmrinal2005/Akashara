@@ -127,8 +127,8 @@ function aggregate(rows: Iterable<RpaRow>): Aggregates {
 
 function KpiTile({ icon, label, value, accent }: { icon: string; label: string; value: string; accent?: string }) {
   return (
-    <div className="flex flex-col rounded-lg border border-base-600 bg-base-900/70 px-3 py-2">
-      <span className="text-[10.5px] uppercase tracking-wider text-slate-400">{icon} {label}</span>
+    <div className="liquid-glass flex flex-col rounded-xl px-3 py-2">
+      <span className="text-[10.5px] uppercase tracking-wider text-slate-300">{icon} {label}</span>
       <span className={`tnum mt-0.5 text-base font-bold ${accent ?? 'text-white'}`}>{value}</span>
     </div>
   )
@@ -136,10 +136,10 @@ function KpiTile({ icon, label, value, accent }: { icon: string; label: string; 
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="flex min-h-0 flex-col rounded-lg border border-base-600 bg-base-900/60 p-3">
+    <section className="liquid-glass flex min-h-0 min-w-0 flex-col rounded-2xl p-3">
       <header className="mb-2 flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold text-accent-soft">{title}</h3>
-        {subtitle && <span className="text-[10.5px] text-slate-500">{subtitle}</span>}
+        {subtitle && <span className="text-[10.5px] text-slate-400">{subtitle}</span>}
       </header>
       <div className="relative h-[260px] w-full">{children}</div>
     </section>
@@ -171,8 +171,8 @@ function DeptSavingsBar({ data }: { data: Array<{ label: string; value: number }
           tooltip: { callbacks: { label: (c) => ` ${formatCurrency(Number(c.parsed.y ?? 0))}` } },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8', maxRotation: 40, minRotation: 30 }, grid: { color: '#1e293b' } },
-          y: { ticks: { color: '#94a3b8', callback: (v) => formatCompactCurrency(Number(v)) }, grid: { color: '#1e293b' } },
+          x: { ticks: { color: '#94a3b8', maxRotation: 40, minRotation: 30 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#94a3b8', callback: (v) => formatCompactCurrency(Number(v)) }, grid: { color: 'rgba(255,255,255,0.05)' } },
         },
       },
     })
@@ -193,7 +193,7 @@ function StatusDoughnut({ data }: { data: Array<{ label: string; value: number }
         datasets: [{
           data: data.map((d) => d.value),
           backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
-          borderColor: '#0b1220', borderWidth: 2,
+          borderColor: 'rgba(11,18,32,0.8)', borderWidth: 2,
         }],
       },
       options: {
@@ -240,8 +240,8 @@ function AutomationRobotsBar({ data }: { data: Array<{ label: string; value: num
           tooltip: { callbacks: { label: (c) => ` ${formatInt(Number(c.parsed.x ?? 0))} robots` } },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
         },
       },
     })
@@ -273,8 +273,8 @@ function RoiHistogram({ data }: { data: { labels: string[]; values: number[] } }
           tooltip: { callbacks: { label: (c) => ` ${formatInt(Number(c.parsed.y ?? 0))} projects` } },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, beginAtZero: true },
+          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
         },
       },
     })
@@ -303,27 +303,35 @@ export function AnalyticsView() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[2px]" onClick={close} aria-hidden="true" />
-      <div role="dialog" aria-modal="true" aria-label="Analytics view — frozen-snapshot Chart.js dashboard"
-        className="fixed inset-x-4 top-4 bottom-4 z-50 flex flex-col rounded-xl border border-base-500 bg-base-800 shadow-2xl">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-base-600 px-4 py-3">
+      <div className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[3px]" onClick={close} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Analytics view — frozen-snapshot Chart.js dashboard"
+        className="liquid-glass-strong fixed inset-x-3 top-3 bottom-3 z-50 flex flex-col rounded-2xl sm:inset-x-4 sm:top-4 sm:bottom-4"
+      >
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div>
             <h2 className="text-base font-bold text-white">
               📊 Analytics View
-              <span className="ml-2 rounded-full border border-warn/50 bg-warn/10 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-warn">
+              <span className="liquid-glass ml-2 inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-warn">
                 Frozen Snapshot
               </span>
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-300">
               Chart.js aggregation over {formatInt(agg.totalProjects)} project rows · resume the stream to dismiss
             </p>
           </div>
-          <button onClick={close} className="rounded-md border border-base-600 bg-base-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-base-700" aria-label="Close analytics view">
+          <button
+            onClick={close}
+            className="liquid-glass rounded-full px-3 py-1.5 text-xs text-slate-200 hover:text-white"
+            aria-label="Close analytics view"
+          >
             ✕  Esc
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-2 border-b border-base-600 px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 border-b border-white/10 px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
           <KpiTile icon="📊" label="Projects" value={formatInt(agg.totalProjects)} accent="text-accent-soft" />
           <KpiTile icon="🤖" label="Robots" value={formatInt(agg.totalRobots)} accent="text-accent" />
           <KpiTile icon="💰" label="Savings" value={formatCompactCurrency(agg.totalSavings)} accent="text-ok" />
@@ -332,7 +340,7 @@ export function AnalyticsView() {
           <KpiTile icon="⏱️" label="Hours Saved" value={formatInt(agg.totalHours)} />
         </div>
 
-        <div className="grid flex-1 min-h-0 gap-3 overflow-y-auto p-4 lg:grid-cols-2">
+        <div className="glass-scroll grid flex-1 min-h-0 gap-3 overflow-y-auto p-4 lg:grid-cols-2">
           <ChartCard title="💹 Top Departments by Annual Savings" subtitle="Top 10">
             <DeptSavingsBar data={agg.byDepartmentSavings} />
           </ChartCard>
@@ -347,7 +355,7 @@ export function AnalyticsView() {
           </ChartCard>
         </div>
 
-        <footer className="border-t border-base-600 bg-base-900/70 px-4 py-2 text-[11px] text-slate-500">
+        <footer className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-400">
           📌 Chart.js v4 · all aggregations computed once over the paused store snapshot
         </footer>
       </div>

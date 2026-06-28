@@ -62,11 +62,11 @@ export function DepartmentChart() {
                 return lbl.length > 11 ? lbl.slice(0, 10) + '…' : lbl
               },
             },
-            grid: { color: '#1e293b' },
+            grid: { color: 'rgba(255,255,255,0.05)' },
           },
           y: {
             ticks: { color: '#94a3b8', callback: (v) => formatCompactCurrency(Number(v)) },
-            grid: { color: '#1e293b' }, beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true,
           },
         },
       },
@@ -90,15 +90,18 @@ export function DepartmentChart() {
   }, [])
 
   return (
-    <section id="department-chart" aria-label="Annual savings by department"
-      className="chart-panel rounded-lg border border-base-600 bg-base-800 p-4">
+    <section
+      id="department-chart"
+      aria-label="Annual savings by department"
+      className="liquid-glass chart-panel flex h-full min-w-0 flex-col rounded-2xl p-4"
+    >
       <h2 className="mb-3 text-sm font-semibold text-accent-soft">
         💹 Top Departments by Annual Savings (live)
       </h2>
-      <div className="relative h-[280px] w-full">
+      <div className="relative min-h-[260px] w-full flex-1">
         <canvas ref={canvasRef} />
       </div>
-      <p className="mt-2 text-[10.5px] text-slate-500">
+      <p className="mt-2 text-[10.5px] text-slate-400">
         Chart.js v4 · aggregated every {REFRESH_MS} ms over the master store
       </p>
     </section>

@@ -21,6 +21,8 @@ module.exports = {
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        heading: ['"Instrument Serif"', 'serif'],
+        body: ['"Barlow"', 'sans-serif'],
       },
     },
   },
