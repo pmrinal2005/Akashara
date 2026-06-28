@@ -21,9 +21,16 @@ const EXTRA_VIDEOS = [
   '/section5.mp4',
 ]
 
-const FADE_MS = 500
-const FADE_OUT_LEAD = 0.55
-const DEFAULT_TRIM_SECONDS = 1.2
+// ─── Loop configuration ──────────────────────────────────────────────────
+// Task 1: Videos must loop INSTANTLY without any black screen.
+//   • Fade-IN only on the very first frame (FADE_IN_MS).
+//   • Once visible, we hand looping over to the native `loop` attribute,
+//     which restarts playback in the same microtask the previous frame ends
+//     — i.e. zero-latency, zero black gap.
+//   • TRIM_END is no longer needed because we never fade OUT, but we keep
+//     the legacy prop signature for backward compatibility.
+const FADE_IN_MS = 500
+const DEFAULT_TRIM_SECONDS = 0
 
 const SECTION_IDS = {
   hero: 'home',
@@ -314,7 +321,7 @@ const creativeSections: CreativeSection[] = [
    reports it ready, then call video.load() once. This is the difference
    between black frames on first scroll and a buttery, pre-warmed playback.
    ──────────────────────────────────────────────────────────────────────── */
-function useFadingVideo({ src, trimEndSeconds = DEFAULT_TRIM_SECONDS, onReady, isHero }: FadingVideoProps) {
+function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
   const ref = useRef<HTMLVideoElement>(null)
   // The actual URL fed to <video src>. Starts at whatever the cache already
   // has (blob if warmed, original otherwise) and is upgraded once the warm
@@ -334,19 +341,31 @@ function useFadingVideo({ src, trimEndSeconds = DEFAULT_TRIM_SECONDS, onReady, i
     return () => {
       active = false
     }
-    // We only care about the underlying logical src, not the resolved one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, isHero])
 
+  /* ───────────────────────────────────────────────────────────────────────
+     Task 1 — INSTANT LOOPING
+     ───────────────────────────────────────────────────────────────────────
+     Previous implementation faded the video to opacity 0 ~0.55 s before the
+     end, then waited another 100 ms before restarting from currentTime=0.
+     This produced a clearly visible black gap on every loop iteration.
+
+     New approach:
+       1. Set the native `loop` attribute on the <video>. The browser then
+          seamlessly restarts playback in the same render tick that the
+          previous frame ends — zero black frame, zero gap.
+       2. We ONLY do a single fade-in (opacity 0 → 1) the very first time
+          the video is decoded. After that, opacity stays pinned at 1
+          forever, so every subsequent loop iteration is invisible to the
+          user — exactly the desired "infinite seamless playback".
+     ──────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     const video = ref.current
     if (!video) return
 
     let fadeRaf = 0
-    let restartTimeout = 0
     let readyEmitted = false
-    let fadingOut = false
-    let restarting = false
 
     const fadeTo = (target: number, duration: number) => {
       cancelAnimationFrame(fadeRaf)
@@ -365,82 +384,51 @@ function useFadingVideo({ src, trimEndSeconds = DEFAULT_TRIM_SECONDS, onReady, i
       fadeRaf = requestAnimationFrame(step)
     }
 
-    const restartLoop = () => {
-      if (restarting) return
-      restarting = true
-      video.style.opacity = '0'
-      window.clearTimeout(restartTimeout)
-      restartTimeout = window.setTimeout(() => {
-        try {
-          video.currentTime = 0
-        } catch {
-          // noop
-        }
-        fadingOut = false
-        restarting = false
-        video.play().catch(() => {})
-        fadeTo(1, FADE_MS)
-      }, 100)
-    }
-
     const handleReady = () => {
-      video.style.opacity = '0'
-      video.play().catch(() => {})
-      fadeTo(1, FADE_MS)
+      // Once-only fade-in. Subsequent loop iterations stay at opacity 1.
       if (!readyEmitted) {
+        video.style.opacity = '0'
+        fadeTo(1, FADE_IN_MS)
         readyEmitted = true
         onReady?.()
+      } else {
+        video.style.opacity = '1'
       }
+      video.play().catch(() => {})
     }
 
-    const handleTimeUpdate = () => {
-      const duration = Number.isFinite(video.duration) ? video.duration : 0
-      if (!duration) return
-
-      const effectiveEnd = Math.max(0.15, duration - trimEndSeconds)
-      const remaining = effectiveEnd - video.currentTime
-
-      if (!fadingOut && remaining > 0 && remaining <= FADE_OUT_LEAD) {
-        fadingOut = true
-        fadeTo(0, FADE_MS)
-      }
-
-      if (video.currentTime >= effectiveEnd) {
-        restartLoop()
-      }
-    }
-
-    const handleEnded = () => restartLoop()
-
-    video.style.opacity = '0'
+    // Configure for seamless looping BEFORE attaching listeners.
+    video.loop = true                 // native instant-loop
+    video.muted = true                // required for autoplay
+    video.playsInline = true
     video.preload = 'auto'
+    video.style.opacity = '0'
+
     video.addEventListener('loadeddata', handleReady)
     video.addEventListener('canplay', handleReady)
-    video.addEventListener('timeupdate', handleTimeUpdate)
-    video.addEventListener('ended', handleEnded)
     video.load()
 
     return () => {
       cancelAnimationFrame(fadeRaf)
-      window.clearTimeout(restartTimeout)
       video.removeEventListener('loadeddata', handleReady)
       video.removeEventListener('canplay', handleReady)
-      video.removeEventListener('timeupdate', handleTimeUpdate)
-      video.removeEventListener('ended', handleEnded)
     }
-  }, [onReady, resolvedSrc, trimEndSeconds])
+  }, [onReady, resolvedSrc])
 
   return { ref, resolvedSrc }
 }
 
 function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }: FadingVideoProps) {
-  const { ref, resolvedSrc } = useFadingVideo({ src, trimEndSeconds, onReady, isHero })
+  // trimEndSeconds is intentionally ignored — see useFadingVideo block comment.
+  void trimEndSeconds
+  const { ref, resolvedSrc } = useFadingVideo({ src, onReady, isHero })
   return (
     <video
       ref={ref}
       src={resolvedSrc}
       autoPlay
       muted
+      loop                /* native, seamless, no JS gap */
       playsInline
       preload="auto"
       className={className}
@@ -625,6 +613,16 @@ function SectionFrame({
         }
         style={heroScale ? { width: '120%', height: '120%' } : undefined}
       />
+      {/* ─── Task 1 — DARKENING OVERLAY ───────────────────────────────────
+         A static, very-low-cost <div> sits between the looping <video>
+         (z-0) and the content (z-10). It mixes a subtle radial vignette
+         with a uniform tint so:
+           • The background video is darkened enough that white text and
+             liquid-glass cards reach AA contrast.
+           • The center stays slightly brighter than the edges, focusing
+             the operator's eye on the headlines.
+         Pure CSS — no paint cost per frame, no repaint on scroll.       */}
+      <div className="section-darken pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
       <div className="relative z-10 min-h-screen">{children}</div>
     </section>
   )

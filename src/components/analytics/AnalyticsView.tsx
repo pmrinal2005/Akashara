@@ -160,15 +160,20 @@ function ChartCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="liquid-glass flex min-h-0 w-full flex-col rounded-2xl p-3 sm:p-4">
+    /* Task 4: every chart MUST stay inside its card on every viewport.
+        • `min-w-0` lets the flex/grid parent shrink the canvas correctly on
+          very narrow screens — without this, chart.js tries to draw at its
+          natural width and overflows the card.
+        • `overflow-hidden` clips any pixel that escapes the rounded border. */
+    <div className="liquid-glass flex min-w-0 flex-col overflow-hidden rounded-2xl p-3 sm:p-4">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
         <h3 className="text-xs font-semibold text-accent-soft sm:text-sm">{title}</h3>
         {subtitle && (
           <span className="text-[10px] text-slate-400 sm:text-[10.5px]">{subtitle}</span>
         )}
       </div>
-      {/* Fixed height so Chart.js maintainAspectRatio=false always has a concrete container */}
-      <div className="relative h-[220px] w-full sm:h-[260px]">{children}</div>
+      {/* Deterministic, viewport-aware height via .analytics-chart-card */}
+      <div className="analytics-chart-card">{children}</div>
     </div>
   )
 }
@@ -434,7 +439,7 @@ export function AnalyticsView() {
         role="dialog"
         aria-modal="true"
         aria-label="Analytics view — frozen-snapshot Chart.js dashboard"
-        className="analytics-modal liquid-glass-strong fixed inset-0 z-50 flex flex-col sm:inset-2 sm:rounded-2xl"
+        className="analytics-modal liquid-glass-strong fixed inset-0 z-50 flex flex-col"
         style={{ isolation: 'isolate' }}
       >
         {/* ── Header ────────────────────────────────────────────────────── */}
@@ -480,8 +485,8 @@ export function AnalyticsView() {
           - Each ChartCard has explicit h-[220px]/h-[260px] so the canvas
             always has a finite pixel height for Chart.js to paint into.
         */}
-        <div className="glass-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+        <div className="glass-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
             <ChartCard title="💹 Top Departments by Annual Savings" subtitle="Top 10">
               <DeptSavingsBar data={agg.byDepartmentSavings} />
             </ChartCard>
