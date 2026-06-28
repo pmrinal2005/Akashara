@@ -20,6 +20,8 @@ import { store, viewPool } from '../../core/engine'
 import { COLUMNS, GRID_TEMPLATE, ROW_HEIGHT } from './columns'
 import { GridHeader } from './GridHeader'
 import type { RpaRow } from '../../core/types'
+import { inspectorStore } from '../../core/InspectorStore'
+import { bufferQueue } from '../../core/engine'
 
 const OVERSCAN = 8
 
@@ -72,6 +74,11 @@ export function VirtualGrid() {
           cells.push(span)
         }
         windowEl.appendChild(row)
+        row.style.cursor = 'pointer'
+        row.addEventListener('click', () => {
+          if (!bufferQueue.isPaused()) return       // gate: only while paused
+          const slot = slotsRef.current[i]          // capture by ref (i may not be the right index after rebuilds, so use closure-safe lookup below instead)
+        })
         slots.push({ el: row, cells, uid: null })
       }
       slotsRef.current = slots
