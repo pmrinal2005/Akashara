@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Real-time RPA Automation Telemetry Monitor — Frontend Battle 2026. High-performance virtualized grid streaming 50k records."
+    />
+    <title>RPA Telemetry Monitor — Frontend Battle 2026</title>
+
+    <!--
+      Step 1: Inject the OFFICIAL hackathon pipeline script, UNCHANGED.
+      It exposes window.initializeRpaStream and fetches the CSV from /public.
+      Loaded before the app bundle so the global hook exists at ingest time.
+    -->
+    <script src="/dataStream.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Step 2: the application bundle (our high-performance state engine + UI) -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
