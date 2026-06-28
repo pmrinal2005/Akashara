@@ -1,11 +1,3 @@
-/**
- * ===========================================================================
- *  APP — top-level shell.
- * ===========================================================================
- *  Starts the ingestor exactly once (StrictMode-safe), wires the worker bridge,
- *  and lays out the KPI strip, controls, grid, and analytics chart with
- *  layout-persisted widget gates.
- */
 import { useEffect, useState } from 'react'
 import { ingestor } from './core/engine'
 import { workerBridge } from './core/WorkerBridge'
@@ -13,7 +5,9 @@ import { usePersistedLayout } from './hooks/usePersistedLayout'
 import { KpiStrip } from './components/kpi/KpiStrip'
 import { GridPanel } from './components/grid/GridPanel'
 import { DepartmentChart } from './components/analytics/DepartmentChart'
+import { AnalyticsView } from './components/analytics/AnalyticsView'
 import { PausePlay } from './components/controls/PausePlay'
+import { AnalyticsToggle } from './components/controls/AnalyticsToggle'
 import { FuzzySearchBar } from './components/controls/FuzzySearchBar'
 import { FilterDropdowns } from './components/controls/FilterDropdowns'
 import { WidgetGate, VisibilityControls } from './components/shell/WidgetVisibility'
@@ -29,17 +23,10 @@ export default function App() {
   const debug = useDebugFlag()
   const [error, setError] = useState<string | null>(null)
 
-  // Start the official stream exactly once. StrictMode double-invokes this
-  // effect in dev; ingestor.start() and dataStream.js are both idempotent.
   useEffect(() => {
     ingestor.start(undefined, (msg) => setError(msg))
-    return () => {
-      // Workers are torn down only on real unmount (full app teardown).
-      // Intentionally NOT terminating on StrictMode remount.
-    }
   }, [])
 
-  // Tear down workers when the tab/app is actually destroyed.
   useEffect(() => {
     const handler = () => workerBridge.destroy()
     window.addEventListener('pagehide', handler)
@@ -48,7 +35,6 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col gap-3 p-3">
-      {/* Header bar */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold text-white">
@@ -59,6 +45,7 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-3">
           <VisibilityControls layout={layout} toggle={toggle} reset={reset} />
           <PausePlay />
+          <AnalyticsToggle />
         </div>
       </header>
 
@@ -68,12 +55,8 @@ export default function App() {
         </div>
       )}
 
-      {/* KPI strip */}
-      <WidgetGate show={layout.kpiVisible}>
-        <KpiStrip />
-      </WidgetGate>
+      <WidgetGate show={layout.kpiVisible}><KpiStrip /></WidgetGate>
 
-      {/* Controls row */}
       <WidgetGate show={layout.filtersVisible}>
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-base-600 bg-base-800 p-2">
           <FuzzySearchBar />
@@ -81,20 +64,16 @@ export default function App() {
         </div>
       </WidgetGate>
 
-      {/* Main content: grid + chart */}
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
         <WidgetGate show={layout.gridVisible}>
-          <div className="flex min-h-0 flex-1 flex-col lg:basis-2/3">
-            <GridPanel />
-          </div>
+          <div className="flex min-h-0 flex-1 flex-col lg:basis-2/3"><GridPanel /></div>
         </WidgetGate>
-
         <WidgetGate show={layout.chartVisible}>
-          <div className="min-h-0 lg:basis-1/3">
-            <DepartmentChart />
-          </div>
+          <div className="min-h-0 lg:basis-1/3"><DepartmentChart /></div>
         </WidgetGate>
       </div>
+
+      <AnalyticsView />
 
       {debug && <DebugOverlay />}
     </div>
