@@ -538,3 +538,66 @@ body {
     height: 58px;
   }
 }
+
+/* ============================================================
+   ANALYTICS MODAL — Task 3 Fix
+   Ensures the modal is true full-screen on mobile (inset-0)
+   and a pleasant rounded-panel on larger screens (inset-2).
+   The chart grid must fill the available flex height correctly.
+   ============================================================ */
+.analytics-modal {
+  display: flex;
+  flex-direction: column;
+  /* On mobile: edge-to-edge */
+  border-radius: 0;
+}
+
+@media (min-width: 640px) {
+  .analytics-modal {
+    border-radius: 1rem;
+  }
+}
+
+/* ============================================================
+   SIDEBAR PANEL — Task 4
+   ============================================================ */
+.sidebar-panel {
+  /* Rounded corners, overflow hidden so content respects them */
+  border-radius: 1rem;
+  position: relative;
+  z-index: 10;
+  /* Smooth width transition for collapse/expand */
+  transition: width 200ms ease-in-out, min-width 200ms ease-in-out;
+}
+
+/* On small screens the sidebar floats as a fixed drawer */
+@media (max-width: 1023px) {
+  .sidebar-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 30;
+    border-radius: 0 1rem 1rem 0;
+  }
+}
+
+/* ============================================================
+   FILTER DROPDOWN — Task 2 Fix
+   Ensure the dropdown panel escapes normal flow cleanly.
+   ============================================================ */
+#filter-bar {
+  position: relative;
+  z-index: 10;
+}
+
+/* Each MultiSelect wrapper */
+#filter-bar > div {
+  position: relative;
+  z-index: 10;
+}
+
+/* Active dropdown gets a higher z than siblings */
+#filter-bar > div:focus-within {
+  z-index: 200;
+}

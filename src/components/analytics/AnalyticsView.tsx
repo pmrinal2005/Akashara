@@ -125,28 +125,68 @@ function aggregate(rows: Iterable<RpaRow>): Aggregates {
   }
 }
 
-function KpiTile({ icon, label, value, accent }: { icon: string; label: string; value: string; accent?: string }) {
+// ─── KPI Tile ─────────────────────────────────────────────────────────────
+function KpiTile({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: string
+  label: string
+  value: string
+  accent?: string
+}) {
   return (
-    <div className="liquid-glass flex flex-col rounded-xl px-3 py-2">
-      <span className="text-[10.5px] uppercase tracking-wider text-slate-300">{icon} {label}</span>
-      <span className={`tnum mt-0.5 text-base font-bold ${accent ?? 'text-white'}`}>{value}</span>
+    <div className="liquid-glass flex min-w-0 flex-col rounded-xl px-3 py-2.5">
+      <span className="text-[10px] uppercase tracking-wider text-slate-300">
+        {icon} {label}
+      </span>
+      <span className={`tnum mt-0.5 truncate text-sm font-bold sm:text-base ${accent ?? 'text-white'}`}>
+        {value}
+      </span>
     </div>
   )
 }
 
-function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+// ─── Chart Card — fixed-height container so canvas always has room ────────
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
   return (
-    <section className="liquid-glass flex min-h-0 min-w-0 flex-col rounded-2xl p-3">
-      <header className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-accent-soft">{title}</h3>
-        {subtitle && <span className="text-[10.5px] text-slate-400">{subtitle}</span>}
-      </header>
-      <div className="relative h-[260px] w-full">{children}</div>
-    </section>
+    <div className="liquid-glass flex min-h-0 w-full flex-col rounded-2xl p-3 sm:p-4">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
+        <h3 className="text-xs font-semibold text-accent-soft sm:text-sm">{title}</h3>
+        {subtitle && (
+          <span className="text-[10px] text-slate-400 sm:text-[10.5px]">{subtitle}</span>
+        )}
+      </div>
+      {/* Fixed height so Chart.js maintainAspectRatio=false always has a concrete container */}
+      <div className="relative h-[220px] w-full sm:h-[260px]">{children}</div>
+    </div>
   )
 }
 
-const PALETTE = ['#38bdf8','#7dd3fc','#a78bfa','#f472b6','#fb923c','#fbbf24','#4ade80','#34d399','#22d3ee','#f87171']
+const PALETTE = [
+  '#38bdf8',
+  '#7dd3fc',
+  '#a78bfa',
+  '#f472b6',
+  '#fb923c',
+  '#fbbf24',
+  '#4ade80',
+  '#34d399',
+  '#22d3ee',
+  '#f87171',
+]
+
+// ─── Individual chart components ─────────────────────────────────────────
 
 function DeptSavingsBar({ data }: { data: Array<{ label: string; value: number }> }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -157,28 +197,53 @@ function DeptSavingsBar({ data }: { data: Array<{ label: string; value: number }
       type: 'bar',
       data: {
         labels: data.map((d) => d.label),
-        datasets: [{
-          label: 'Annual Savings (USD)',
-          data: data.map((d) => d.value),
-          backgroundColor: 'rgba(56,189,248,0.55)',
-          borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4,
-        }],
+        datasets: [
+          {
+            label: 'Annual Savings (USD)',
+            data: data.map((d) => d.value),
+            backgroundColor: 'rgba(56,189,248,0.55)',
+            borderColor: '#38bdf8',
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+        ],
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: (c) => ` ${formatCurrency(Number(c.parsed.y ?? 0))}` } },
+          tooltip: {
+            callbacks: {
+              label: (c) => ` ${formatCurrency(Number(c.parsed.y ?? 0))}`,
+            },
+          },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8', maxRotation: 40, minRotation: 30 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { ticks: { color: '#94a3b8', callback: (v) => formatCompactCurrency(Number(v)) }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          x: {
+            ticks: {
+              color: '#94a3b8',
+              maxRotation: 40,
+              minRotation: 20,
+              font: { size: 10 },
+            },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            ticks: {
+              color: '#94a3b8',
+              callback: (v) => formatCompactCurrency(Number(v)),
+              font: { size: 10 },
+            },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
         },
       },
     })
     return () => chart.destroy()
   }, [data])
-  return <canvas ref={ref} />
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
 }
 
 function StatusDoughnut({ data }: { data: Array<{ label: string; value: number }> }) {
@@ -190,16 +255,30 @@ function StatusDoughnut({ data }: { data: Array<{ label: string; value: number }
       type: 'doughnut',
       data: {
         labels: data.map((d) => d.label),
-        datasets: [{
-          data: data.map((d) => d.value),
-          backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
-          borderColor: 'rgba(11,18,32,0.8)', borderWidth: 2,
-        }],
+        datasets: [
+          {
+            data: data.map((d) => d.value),
+            backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
+            borderColor: 'rgba(11,18,32,0.8)',
+            borderWidth: 2,
+          },
+        ],
       },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        cutout: '55%',
         plugins: {
-          legend: { position: 'right', labels: { color: '#cbd5e1', boxWidth: 12 } },
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#cbd5e1',
+              boxWidth: 10,
+              font: { size: 10 },
+              padding: 8,
+            },
+          },
           tooltip: {
             callbacks: {
               label: (c) => {
@@ -214,7 +293,7 @@ function StatusDoughnut({ data }: { data: Array<{ label: string; value: number }
     })
     return () => chart.destroy()
   }, [data])
-  return <canvas ref={ref} />
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
 }
 
 function AutomationRobotsBar({ data }: { data: Array<{ label: string; value: number }> }) {
@@ -226,28 +305,45 @@ function AutomationRobotsBar({ data }: { data: Array<{ label: string; value: num
       type: 'bar',
       data: {
         labels: data.map((d) => d.label),
-        datasets: [{
-          label: 'Robots Deployed',
-          data: data.map((d) => d.value),
-          backgroundColor: 'rgba(167,139,250,0.55)',
-          borderColor: '#a78bfa', borderWidth: 1, borderRadius: 4,
-        }],
+        datasets: [
+          {
+            label: 'Robots Deployed',
+            data: data.map((d) => d.value),
+            backgroundColor: 'rgba(167,139,250,0.55)',
+            borderColor: '#a78bfa',
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+        ],
       },
       options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: (c) => ` ${formatInt(Number(c.parsed.x ?? 0))} robots` } },
+          tooltip: {
+            callbacks: {
+              label: (c) => ` ${formatInt(Number(c.parsed.x ?? 0))} robots`,
+            },
+          },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          x: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
         },
       },
     })
     return () => chart.destroy()
   }, [data])
-  return <canvas ref={ref} />
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
 }
 
 function RoiHistogram({ data }: { data: { labels: string[]; values: number[] } }) {
@@ -259,30 +355,51 @@ function RoiHistogram({ data }: { data: { labels: string[]; values: number[] } }
       type: 'line',
       data: {
         labels: data.labels,
-        datasets: [{
-          label: 'Projects', data: data.values,
-          borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.18)',
-          fill: true, tension: 0.35, pointRadius: 3,
-          pointBackgroundColor: '#86efac', borderWidth: 2,
-        }],
+        datasets: [
+          {
+            label: 'Projects',
+            data: data.values,
+            borderColor: '#4ade80',
+            backgroundColor: 'rgba(74,222,128,0.18)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#86efac',
+            borderWidth: 2,
+          },
+        ],
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: (c) => ` ${formatInt(Number(c.parsed.y ?? 0))} projects` } },
+          tooltip: {
+            callbacks: {
+              label: (c) => ` ${formatInt(Number(c.parsed.y ?? 0))} projects`,
+            },
+          },
         },
         scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+          x: {
+            ticks: { color: '#94a3b8', maxRotation: 30, font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            beginAtZero: true,
+          },
         },
       },
     })
     return () => chart.destroy()
   }, [data])
-  return <canvas ref={ref} />
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />
 }
 
+// ─── Main Analytics View ──────────────────────────────────────────────────
 export function AnalyticsView() {
   const { isOpen, close } = useAnalyticsView()
 
@@ -294,7 +411,9 @@ export function AnalyticsView() {
 
   useEffect(() => {
     if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, close])
@@ -303,59 +422,86 @@ export function AnalyticsView() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[3px]" onClick={close} aria-hidden="true" />
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[3px]"
+        onClick={close}
+        aria-hidden="true"
+      />
+
+      {/* Modal — true full-screen with safe inset so it never clips on mobile */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Analytics view — frozen-snapshot Chart.js dashboard"
-        className="liquid-glass-strong fixed inset-x-3 top-3 bottom-3 z-50 flex flex-col rounded-2xl sm:inset-x-4 sm:top-4 sm:bottom-4"
+        className="analytics-modal liquid-glass-strong fixed inset-0 z-50 flex flex-col sm:inset-2 sm:rounded-2xl"
+        style={{ isolation: 'isolate' }}
       >
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <div>
-            <h2 className="text-base font-bold text-white">
+        {/* ── Header ────────────────────────────────────────────────────── */}
+        <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="flex flex-wrap items-center gap-2 text-sm font-bold text-white sm:text-base">
               📊 Analytics View
-              <span className="liquid-glass ml-2 inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-warn">
+              <span className="liquid-glass inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warn sm:text-[10.5px]">
                 Frozen Snapshot
               </span>
             </h2>
-            <p className="text-[11px] text-slate-300">
+            <p className="mt-0.5 text-[10px] text-slate-300 sm:text-[11px]">
               Chart.js aggregation over {formatInt(agg.totalProjects)} project rows · resume the stream to dismiss
             </p>
           </div>
           <button
             onClick={close}
-            className="liquid-glass rounded-full px-3 py-1.5 text-xs text-slate-200 hover:text-white"
+            className="liquid-glass flex-shrink-0 rounded-full px-3 py-1.5 text-xs text-slate-200 hover:text-white"
             aria-label="Close analytics view"
           >
-            ✕  Esc
+            ✕ Esc
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-2 border-b border-white/10 px-4 py-3 sm:grid-cols-3 lg:grid-cols-6">
-          <KpiTile icon="📊" label="Projects" value={formatInt(agg.totalProjects)} accent="text-accent-soft" />
-          <KpiTile icon="🤖" label="Robots" value={formatInt(agg.totalRobots)} accent="text-accent" />
-          <KpiTile icon="💰" label="Savings" value={formatCompactCurrency(agg.totalSavings)} accent="text-ok" />
-          <KpiTile icon="🏦" label="Budget" value={formatCompactCurrency(agg.totalBudget)} />
-          <KpiTile icon="📈" label="Avg ROI" value={formatPercent(agg.avgRoi)} accent="text-warn" />
-          <KpiTile icon="⏱️" label="Hours Saved" value={formatInt(agg.totalHours)} />
+        {/* ── KPI Strip ─────────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 border-b border-white/10 px-3 py-2.5 sm:px-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <KpiTile icon="📊" label="Projects" value={formatInt(agg.totalProjects)} accent="text-accent-soft" />
+            <KpiTile icon="🤖" label="Robots" value={formatInt(agg.totalRobots)} accent="text-accent" />
+            <KpiTile icon="💰" label="Savings" value={formatCompactCurrency(agg.totalSavings)} accent="text-ok" />
+            <KpiTile icon="🏦" label="Budget" value={formatCompactCurrency(agg.totalBudget)} />
+            <KpiTile icon="📈" label="Avg ROI" value={formatPercent(agg.avgRoi)} accent="text-warn" />
+            <KpiTile icon="⏱️" label="Hours Saved" value={formatInt(agg.totalHours)} />
+          </div>
         </div>
 
-        <div className="glass-scroll grid flex-1 min-h-0 gap-3 overflow-y-auto p-4 lg:grid-cols-2">
-          <ChartCard title="💹 Top Departments by Annual Savings" subtitle="Top 10">
-            <DeptSavingsBar data={agg.byDepartmentSavings} />
-          </ChartCard>
-          <ChartCard title="🧭 Project Status Distribution">
-            <StatusDoughnut data={agg.byStatus} />
-          </ChartCard>
-          <ChartCard title="🤖 Top Automation Types by Robots Deployed" subtitle="Top 10">
-            <AutomationRobotsBar data={agg.byAutomationRobots} />
-          </ChartCard>
-          <ChartCard title="📈 ROI Distribution (histogram)">
-            <RoiHistogram data={agg.roiBins} />
-          </ChartCard>
+        {/* ── Charts Grid ───────────────────────────────────────────────── */}
+        {/*
+          Task 3 Fix:
+          - flex-1 min-h-0 so the scroll region fills all remaining height.
+          - overflow-y-auto handles overflow cleanly.
+          - Responsive: 1 col on mobile, 2 cols on ≥ md.
+          - Each ChartCard has explicit h-[220px]/h-[260px] so the canvas
+            always has a finite pixel height for Chart.js to paint into.
+        */}
+        <div className="glass-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+            <ChartCard title="💹 Top Departments by Annual Savings" subtitle="Top 10">
+              <DeptSavingsBar data={agg.byDepartmentSavings} />
+            </ChartCard>
+
+            <ChartCard title="🧭 Project Status Distribution">
+              <StatusDoughnut data={agg.byStatus} />
+            </ChartCard>
+
+            <ChartCard title="🤖 Top Automation Types by Robots Deployed" subtitle="Top 10">
+              <AutomationRobotsBar data={agg.byAutomationRobots} />
+            </ChartCard>
+
+            <ChartCard title="📈 ROI Distribution (histogram)">
+              <RoiHistogram data={agg.roiBins} />
+            </ChartCard>
+          </div>
         </div>
 
-        <footer className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-400">
+        {/* ── Footer ────────────────────────────────────────────────────── */}
+        <footer className="flex-shrink-0 border-t border-white/10 px-4 py-2 text-[10px] text-slate-400 sm:text-[11px]">
           📌 Chart.js v4 · all aggregations computed once over the paused store snapshot
         </footer>
       </div>

@@ -16,20 +16,34 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
   const version = useViewVersion()
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const ref = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const options = useMemo(() => {
     return Array.from(viewPool.distinct[field]).sort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, field])
 
+  // ── Fix Task 2: portal-style absolute positioning so the dropdown does NOT
+  //    push or displace sibling elements in the flex row.
+  //    We measure the button's position and apply inline styles so the panel
+  //    is taken out of the normal flow entirely.
   useEffect(() => {
     if (!open) return
     const ctrl = new AbortController()
     document.addEventListener(
       'mousedown',
       (e) => {
-        if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+        const container = containerRef.current
+        const dropdown = dropdownRef.current
+        if (
+          container &&
+          !container.contains(e.target as Node) &&
+          dropdown &&
+          !dropdown.contains(e.target as Node)
+        ) {
+          setOpen(false)
+        }
       },
       { signal: ctrl.signal },
     )
@@ -52,11 +66,14 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
   }
 
   return (
-    <div ref={ref} className="relative">
+    // `relative` wrapper keeps the dropdown anchored correctly.
+    // `isolate` creates a new stacking context so z-index works against
+    // siblings that also have positioned children.
+    <div ref={containerRef} className="relative isolate flex-shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
         className={
-          'liquid-glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ' +
+          'liquid-glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors whitespace-nowrap ' +
           (selected.size
             ? 'text-accent-soft'
             : 'text-slate-200 hover:text-white')
@@ -72,9 +89,14 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
       </button>
 
       {open && (
+        // `fixed`-ish panel: absolute + high z-index + explicit top/left so
+        // it escapes the flex row's overflow and never displaces layout.
+        // The panel is 256 px wide and max-h-72 to keep it compact.
         <div
-          className="liquid-glass-strong glass-scroll absolute z-30 mt-2 max-h-72 w-64 overflow-y-auto rounded-xl p-1"
+          ref={dropdownRef}
+          className="liquid-glass-strong glass-scroll absolute left-0 top-full z-[200] mt-2 max-h-72 w-64 overflow-y-auto rounded-xl p-1 shadow-xl"
           role="listbox"
+          style={{ minWidth: '220px' }}
         >
           <div className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-300">
             <span>{options.length} options</span>
@@ -90,13 +112,13 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
           {options.map((opt) => (
             <label
               key={opt}
-              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm text-slate-100 hover:bg-white/5"
+              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-100 hover:bg-white/5"
             >
               <input
                 type="checkbox"
                 checked={selected.has(opt)}
                 onChange={() => toggleValue(opt)}
-                className="accent-accent"
+                className="accent-accent flex-shrink-0"
               />
               <span className="truncate">{opt}</span>
             </label>
@@ -109,7 +131,12 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
 
 export function FilterDropdowns() {
   return (
-    <div id="filter-bar" className="flex flex-wrap items-center gap-2">
+    // `relative` on this wrapper so stacking contexts are self-contained.
+    // The buttons themselves are flex items; dropdowns escape via absolute+z.
+    <div
+      id="filter-bar"
+      className="relative flex flex-wrap items-center gap-2"
+    >
       {FIELDS.map((f) => (
         <MultiSelect key={f.key} field={f.key} label={f.label} />
       ))}

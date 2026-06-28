@@ -10,8 +10,10 @@ import { PausePlay } from './components/controls/PausePlay'
 import { AnalyticsToggle } from './components/controls/AnalyticsToggle'
 import { FuzzySearchBar } from './components/controls/FuzzySearchBar'
 import { FilterDropdowns } from './components/controls/FilterDropdowns'
+import { SnapshotExportButton } from './components/controls/SnapshotExportButton'
 import { WidgetGate, VisibilityControls } from './components/shell/WidgetVisibility'
 import { DebugOverlay } from './components/shell/DebugOverlay'
+import { Sidebar, SidebarToggleButton } from './components/shell/Sidebar'
 import { RowInspector } from './components/inspector/RowInspector'
 import { LandingPage } from './components/landing/LandingPage'
 
@@ -71,62 +73,87 @@ function Dashboard() {
   }, [])
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
-      <header className="liquid-glass flex flex-col gap-3 rounded-2xl px-4 py-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
+    // Root: full viewport flex column
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <header className="liquid-glass flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
+        {/* Left: logo + title */}
+        <div className="flex items-center gap-2.5">
           <a
             href="#"
-            className="liquid-glass flex h-9 w-9 items-center justify-center rounded-full text-white"
+            className="liquid-glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white"
             title="Back to landing"
           >
-            <span className="font-heading text-xl">a</span>
+            <span className="font-heading text-lg">a</span>
           </a>
-          <div>
-            <h1 className="text-base font-bold text-white sm:text-lg">
-              Akashara · RPA Telemetry Monitor
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-bold text-white sm:text-base">
+              Akashara · RPA Monitor
             </h1>
-            <span className="hidden text-[11px] font-normal text-slate-400 sm:inline">
-              Frontend Battle 2026 · Phase 2 Control Terminal
+            <span className="hidden text-[10px] font-normal text-slate-400 sm:inline">
+              Frontend Battle 2026 · Phase 2
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+
+        {/* Right: controls */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <VisibilityControls layout={layout} toggle={toggle} reset={reset} />
+          <SidebarToggleButton />
+          <SnapshotExportButton />
           <PausePlay />
           <AnalyticsToggle />
         </div>
       </header>
 
       {error && (
-        <div className="liquid-glass rounded-xl px-3 py-2 text-sm text-danger">⚠️ {error}</div>
+        <div className="liquid-glass mx-3 mt-1 flex-shrink-0 rounded-xl px-3 py-2 text-sm text-danger">
+          ⚠️ {error}
+        </div>
       )}
 
+      {/* ── KPI Strip ──────────────────────────────────────────────────── */}
       <WidgetGate show={layout.kpiVisible}>
-        <KpiStrip />
+        <div className="mx-3 mt-2 flex-shrink-0 sm:mx-4">
+          <KpiStrip />
+        </div>
       </WidgetGate>
 
+      {/* ── Filters + Search ───────────────────────────────────────────── */}
       <WidgetGate show={layout.filtersVisible}>
-        <div className="liquid-glass flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center">
-          <FuzzySearchBar />
-          <div className="glass-scroll flex flex-wrap items-center gap-2 overflow-x-auto sm:flex-nowrap">
-            <FilterDropdowns />
+        <div className="liquid-glass mx-3 mt-2 flex-shrink-0 rounded-xl p-2.5 sm:mx-4">
+          {/* Task 2 Fix: use `relative` container; each dropdown has its own
+              stacking context so opening one never displaces the others */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <FuzzySearchBar />
+            <div className="relative flex flex-wrap items-center gap-2">
+              <FilterDropdowns />
+            </div>
           </div>
         </div>
       </WidgetGate>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:items-stretch">
-        <WidgetGate show={layout.gridVisible}>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:basis-2/3">
-            <GridPanel />
-          </div>
-        </WidgetGate>
-        <WidgetGate show={layout.chartVisible}>
-          <div className="min-h-0 min-w-0 flex-shrink-0 lg:basis-1/3">
-            <DepartmentChart />
-          </div>
-        </WidgetGate>
+      {/* ── Main content: sidebar + widgets ────────────────────────────── */}
+      <div className="flex min-h-0 flex-1 gap-2 overflow-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+        {/* Collapsible Sidebar */}
+        <Sidebar />
+
+        {/* Widgets area */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-stretch">
+          <WidgetGate show={layout.gridVisible}>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:basis-2/3">
+              <GridPanel />
+            </div>
+          </WidgetGate>
+          <WidgetGate show={layout.chartVisible}>
+            <div className="min-h-0 min-w-0 flex-shrink-0 lg:basis-1/3">
+              <DepartmentChart />
+            </div>
+          </WidgetGate>
+        </div>
       </div>
 
+      {/* ── Overlays ───────────────────────────────────────────────────── */}
       <AnalyticsView />
       <RowInspector />
 
