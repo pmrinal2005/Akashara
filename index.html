@@ -21,6 +21,30 @@
       rel="stylesheet"
     />
 
+    <!--
+      ──────────────────────────────────────────────────────────────────────
+      INSTANT HERO VIDEO PRELOAD
+      ──────────────────────────────────────────────────────────────────────
+      The browser starts downloading the hero clip during the document's
+      preload scanner phase, before React even mounts. By the time the
+      <video> element is created the bytes are already in the HTTP cache —
+      which combined with the in-memory blob cache (src/core/videoCache.ts)
+      gives the hero an "instant play" feel.
+
+      For the other 6 section clips we deliberately do NOT add preload
+      links here — that would compete with the hero for bandwidth on slow
+      networks. They are warmed in parallel from JS after mount, at normal
+      priority, while the user is reading the hero copy.
+      ──────────────────────────────────────────────────────────────────────
+    -->
+    <link
+      rel="preload"
+      as="video"
+      type="video/mp4"
+      href="/landing_page.mp4"
+      fetchpriority="high"
+    />
+
     <script src="/dataStream.js"></script>
   </head>
   <body>
