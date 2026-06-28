@@ -17,9 +17,14 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    // Allow the sandbox public-proxy host (and any host) to reach the dev server.
+    allowedHosts: true,
   },
   preview: {
     host: '0.0.0.0',
     port: 3000,
+    // Vite 6 preview blocks unknown Host headers by default; the sandbox public
+    // URL is a generated subdomain, so permit all hosts for the static preview.
+    allowedHosts: true,
   },
 })
