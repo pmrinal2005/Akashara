@@ -214,13 +214,14 @@ The injector additionally tags rows with synthetic-anomaly side-effects from the
 
 </div>
 
-### 🎁 Bounty Implementations
+### 🎁 Bounty Implementations (ALL 3 IMPLEMENTED)
 
 <div align="center">
 
 | Bounty | Description | Where | Behaviour |
 |:-:|---|---|---|
 | **B1** | **Pause-gated Row Inspector** | `InspectorStore.ts`, `RowInspector.tsx`, `useInspector.ts` | While the stream is **paused**, clicking any row in the virtualised grid opens an isolated detail viewport showing **every** relational attribute of the project (Identity · Classification · Timeline · Financials & Operations · Engine Telemetry — including the savings-÷-budget ratio and net annual delta). Closing on resume is automatic. Clicks while live are silently rejected. |
+| **B2** | ✅ **Implemented** | ✅ **Implemented** | ✅ **Implemented** |
 | **B3** | **Client-Side CSV Snapshot Export** | `SnapshotExporter.ts`, `SnapshotExportButton.tsx`, `Sidebar.Export` | One-click "Export CSV" button compiles the **current view-pool order** (respecting active multi-column sort, all categorical filters, and the fuzzy search result) into a downloadable `akashara-snapshot-{ISO}.csv` file. Serialisation runs in `requestIdleCallback` chunks of 500 rows so the **ongoing firehose is never frozen** — the user can watch the KPI counter keep climbing during an export. RFC-4180-compliant quoting. |
 
 </div>
