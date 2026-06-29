@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { bufferQueue, pauseStream, resumeStream } from '../../core/engine'
+import { PauseIcon, PlayIcon } from '../common/AppIcons'
 
 function subscribe(fn: () => void) {
   return bufferQueue.subscribe(fn)
@@ -25,13 +26,14 @@ export function PausePlay() {
     >
       {paused ? (
         <>
-          ▶ Resume
+          <PlayIcon className="h-4 w-4" />
+          Resume
           <span className="tnum rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-200">
             {batches} batches / {rows} rows queued
           </span>
         </>
       ) : (
-        <>⏸ Pause Stream</>
+        <><PauseIcon className="h-4 w-4" /> Pause Stream</>
       )}
     </button>
   )

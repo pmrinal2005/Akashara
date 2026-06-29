@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { workerBridge } from '../../core/WorkerBridge'
+import { CloseIcon, SearchIcon } from '../common/AppIcons'
 
 export function FuzzySearchBar() {
   const [value, setValue] = useState('')
@@ -12,7 +13,7 @@ export function FuzzySearchBar() {
   return (
     <div className="liquid-glass relative flex-1 min-w-[180px] rounded-full">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300">
-        🔍
+        <SearchIcon className="h-4 w-4" />
       </span>
       <input
         ref={inputRef}
@@ -30,7 +31,7 @@ export function FuzzySearchBar() {
           aria-label="Clear search"
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white"
         >
-          ✕
+          <CloseIcon className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { store } from '../../core/engine'
 import {
   formatCurrency,
@@ -8,6 +9,14 @@ import {
 } from '../../core/Sanitizer'
 import { useInspector } from '../../hooks/useInspector'
 import type { RpaRow } from '../../core/types'
+import {
+  BadgeIcon,
+  CalendarIcon,
+  CloseIcon,
+  CurrencyIcon,
+  SatelliteIcon,
+  TagIcon,
+} from '../common/AppIcons'
 
 function Field({
   label,
@@ -49,13 +58,13 @@ function Card({
   children,
 }: {
   title: string
-  icon: string
+  icon: ReactNode
   children: React.ReactNode
 }) {
   return (
     <section className="liquid-glass rounded-2xl p-3">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-soft">
-        <span className="mr-1.5">{icon}</span>
+        <span className="mr-1.5 inline-flex align-middle">{icon}</span>
         {title}
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</div>
@@ -152,12 +161,12 @@ export function RowInspector() {
             className="liquid-glass rounded-full px-3 py-1 text-xs text-slate-200 hover:text-white"
             aria-label="Close inspector"
           >
-            ✕  Esc
+            <span className="inline-flex items-center gap-1.5"><CloseIcon className="h-3.5 w-3.5" /> Esc</span>
           </button>
         </header>
 
         <div className="glass-scroll flex-1 space-y-3 overflow-y-auto p-3">
-          <Card title="Identity" icon="🪪">
+          <Card title="Identity" icon={<BadgeIcon className="h-3.5 w-3.5" />}>
             <Field label="Project ID" value={row.project_id} mono />
             <Field label="Company ID" value={row.company_id} mono />
             <Field
@@ -169,7 +178,7 @@ export function RowInspector() {
             <Field label="Status" value={row.project_status} />
           </Card>
 
-          <Card title="Classification" icon="🏷️">
+          <Card title="Classification" icon={<TagIcon className="h-3.5 w-3.5" />}>
             <Field label="Automation Type" value={row.automation_type} />
             <Field label="Department" value={row.department} />
             <Field label="Industry" value={row.industry} />
@@ -182,12 +191,12 @@ export function RowInspector() {
             <Field label="Cloud Deployment" value={row.cloud_deployment} />
           </Card>
 
-          <Card title="Timeline" icon="📅">
+          <Card title="Timeline" icon={<CalendarIcon className="h-3.5 w-3.5" />}>
             <Field label="Start Date" value={row.start_date} mono />
             <Field label="Completion Date" value={row.completion_date} mono />
           </Card>
 
-          <Card title="Financials & Operations" icon="💹">
+          <Card title="Financials & Operations" icon={<CurrencyIcon className="h-3.5 w-3.5" />}>
             <Field
               label="Robots Deployed"
               value={formatInt(row.robots_deployed)}
@@ -230,7 +239,7 @@ export function RowInspector() {
 
           <section className="liquid-glass rounded-2xl p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-soft">
-              🛰️ Engine Telemetry
+              <span className="inline-flex items-center gap-1.5"><SatelliteIcon className="h-3.5 w-3.5" /> Engine Telemetry</span>
             </h3>
             <div className="grid grid-cols-3 gap-3 text-[12px]">
               <div>
@@ -256,7 +265,7 @@ export function RowInspector() {
         </div>
 
         <footer className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-400">
-          ⏸ Snapshot taken while stream was paused. Resume to refresh.
+          Snapshot taken while stream was paused. Resume to refresh.
         </footer>
       </aside>
     </>

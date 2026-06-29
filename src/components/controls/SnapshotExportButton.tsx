@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { exportSnapshot } from '../../core/SnapshotExporter'
 import { viewPool } from '../../core/engine'
 import { useViewVersion } from '../../hooks/useViewVersion'
+import { DownloadIcon } from '../common/AppIcons'
 
 export function SnapshotExportButton() {
   const [exporting, setExporting] = useState(false)
@@ -56,7 +57,7 @@ export function SnapshotExportButton() {
         </>
       ) : (
         <>
-          ⬇ Export CSV
+          <DownloadIcon className="h-4 w-4" /> Export CSV
           {count > 0 && (
             <span className="tnum rounded-full bg-white/10 px-1.5 py-0.5 text-[10.5px] text-slate-300">
               {count.toLocaleString()}

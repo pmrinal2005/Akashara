@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { bufferQueue } from '../../core/engine'
 import { analyticsStore } from '../../core/AnalyticsStore'
+import { AnalyticsIcon } from '../common/AppIcons'
 
 function subscribePaused(fn: () => void) {
   return bufferQueue.subscribe(fn)
@@ -48,7 +49,7 @@ export function AnalyticsToggle() {
           : 'cursor-not-allowed text-slate-500')
       }
     >
-      📊 Analytics View
+      <AnalyticsIcon className="h-4 w-4" /> Analytics View
       {!paused && (
         <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-slate-400">
           pause to enable

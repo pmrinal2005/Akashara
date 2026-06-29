@@ -1,6 +1,8 @@
 import { motion, useInView } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { peekResolvedSrc, warmAll, warmVideo, whenReady } from '../../core/videoCache'
+import { BrandLogo } from '../common/BrandLogo'
+import { CloseIcon, MenuIcon, PauseIcon, PulseIcon, QuoteIcon } from '../common/AppIcons'
 
 /* ─────────────────────────────────────────────────────────────────────────
    ASSET MAP
@@ -537,7 +539,7 @@ function SectionFrame({
   isHero?: boolean
 }) {
   return (
-    <section id={id} className={`section-seam relative min-h-screen w-full overflow-hidden bg-black ${className}`}>
+    <section id={id} className={`section-seam relative isolate min-h-screen w-full overflow-x-clip overflow-y-visible bg-black ${className}`}>
       <FadingVideo
         src={video}
         trimEndSeconds={trimEndSeconds}
@@ -551,7 +553,7 @@ function SectionFrame({
         style={heroScale ? { width: '120%', height: '120%' } : undefined}
       />
       <div className="section-darken pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
-      <div className="relative z-10 min-h-screen">{children}</div>
+      <div className="relative z-10 min-h-screen overflow-visible">{children}</div>
     </section>
   )
 }
@@ -573,7 +575,7 @@ function GradientSectionFrame({
   return (
     <section
       id={id}
-      className={`section-seam relative min-h-screen w-full overflow-hidden bg-black ${className}`}
+      className={`section-seam relative isolate min-h-screen w-full overflow-x-clip overflow-y-visible bg-black ${className}`}
     >
       <div className={`gradient-bg gradient-bg--${variant} absolute inset-0 z-0`} aria-hidden="true">
         <span className="gradient-blob gradient-blob--a" />
@@ -582,7 +584,7 @@ function GradientSectionFrame({
         <span className="gradient-blob gradient-blob--d" />
       </div>
       <div className="section-darken pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
-      <div className="relative z-10 min-h-screen">{children}</div>
+      <div className="relative z-10 min-h-screen overflow-visible">{children}</div>
     </section>
   )
 }
@@ -935,7 +937,7 @@ function TempoDeckSection({ section }: { section: CreativeSection }) {
             <div className="liquid-glass flex h-full flex-col justify-between rounded-[1.5rem] p-6 md:min-h-[220px]">
               <div className="flex items-center gap-3 text-[11px] font-body uppercase tracking-[0.18em] text-white/55">
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
-                  {i === 0 ? '⏸' : i === 1 ? '◉' : '▶'}
+                  {i === 0 ? <PauseIcon className="h-3.5 w-3.5" /> : i === 1 ? <PulseIcon className="h-3.5 w-3.5" /> : <PlayIcon className="h-3.5 w-3.5" />}
                 </span>
                 Beat {i + 1}
               </div>
@@ -1235,7 +1237,77 @@ const testimonials: Testimonial[] = [
   },
 ]
 
+function updateTestimonialParallax(node: HTMLElement, clientX: number, clientY: number) {
+  const rect = node.getBoundingClientRect()
+  const px = (clientX - rect.left) / rect.width
+  const py = (clientY - rect.top) / rect.height
+  node.style.setProperty('--testimonial-rotate-x', `${((0.5 - py) * 9).toFixed(2)}deg`)
+  node.style.setProperty('--testimonial-rotate-y', `${((px - 0.5) * 12).toFixed(2)}deg`)
+  node.style.setProperty('--testimonial-glow-x', `${(px * 100).toFixed(2)}%`)
+  node.style.setProperty('--testimonial-glow-y', `${(py * 100).toFixed(2)}%`)
+}
+
+function resetTestimonialParallax(node: HTMLElement) {
+  node.style.setProperty('--testimonial-rotate-x', '0deg')
+  node.style.setProperty('--testimonial-rotate-y', '0deg')
+  node.style.setProperty('--testimonial-glow-x', '50%')
+  node.style.setProperty('--testimonial-glow-y', '50%')
+}
+
+function TestimonialMarqueeRow({
+  items,
+  reverse = false,
+}: {
+  items: Testimonial[]
+  reverse?: boolean
+}) {
+  const looped = [...items, ...items]
+
+  return (
+    <div className="testimonial-marquee-shell">
+      <div className={`testimonial-marquee ${reverse ? 'testimonial-marquee--reverse' : 'testimonial-marquee--forward'}`}>
+        {looped.map((t, index) => {
+          const cloned = index >= items.length
+          return (
+            <figure
+              key={`${t.author}-${index}`}
+              aria-hidden={cloned}
+              tabIndex={cloned ? -1 : 0}
+              onMouseMove={(event) =>
+                updateTestimonialParallax(event.currentTarget, event.clientX, event.clientY)
+              }
+              onMouseLeave={(event) => resetTestimonialParallax(event.currentTarget)}
+              onFocus={(event) => resetTestimonialParallax(event.currentTarget)}
+              className="testimonial-card liquid-glass-strong relative flex h-full min-h-[240px] w-[min(86vw,22rem)] flex-shrink-0 flex-col rounded-[1.5rem] p-6 md:w-[22rem]"
+            >
+              <div className="testimonial-card__glow" aria-hidden="true" />
+              <QuoteIcon className="mb-4 h-6 w-6 text-white/70" />
+              <blockquote className="relative z-[1] flex-1 font-body text-sm font-light leading-relaxed text-white/92 md:text-[15px]">
+                “{t.quote}”
+              </blockquote>
+              <figcaption className="relative z-[1] mt-5 flex items-center gap-3">
+                <div className="liquid-glass flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-heading text-base italic text-white">
+                  {t.initials}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate font-body text-sm font-semibold text-white">{t.author}</div>
+                  <div className="truncate font-body text-xs font-light text-white/70">
+                    {t.role} · {t.org}
+                  </div>
+                </div>
+              </figcaption>
+            </figure>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function TestimonialsSection() {
+  const topRow = testimonials.slice(0, Math.ceil(testimonials.length / 2))
+  const bottomRow = testimonials.slice(Math.ceil(testimonials.length / 2))
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
       <SectionLabel label="Testimonials" />
@@ -1253,36 +1325,10 @@ function TestimonialsSection() {
         </div>
       </SectionReveal>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {testimonials.map((t, i) => (
-          <SectionReveal key={t.author} delay={0.06 * i}>
-            <figure className="liquid-glass flex h-full flex-col rounded-[1.5rem] p-6">
-              <svg
-                className="mb-3 h-6 w-6 text-white/70"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M7 7h4v4H7c0 2.21 1.79 4 4 4v2c-3.31 0-6-2.69-6-6V7Zm9 0h4v4h-4c0 2.21 1.79 4 4 4v2c-3.31 0-6-2.69-6-6V7Z" />
-              </svg>
-              <blockquote className="flex-1 font-body text-sm font-light leading-relaxed text-white/90 md:text-[15px]">
-                “{t.quote}”
-              </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <div className="liquid-glass flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-heading text-base italic text-white">
-                  {t.initials}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate font-body text-sm font-semibold text-white">{t.author}</div>
-                  <div className="truncate font-body text-xs font-light text-white/70">
-                    {t.role} · {t.org}
-                  </div>
-                </div>
-              </figcaption>
-            </figure>
-          </SectionReveal>
-        ))}
-      </div>
+      <SectionReveal delay={0.08} className="mt-8 space-y-4">
+        <TestimonialMarqueeRow items={topRow} />
+        <TestimonialMarqueeRow items={bottomRow} reverse />
+      </SectionReveal>
     </div>
   )
 }
@@ -1475,6 +1521,7 @@ function TrustSection({ onEnter }: { onEnter: () => void }) {
 export function LandingPage({ onEnter }: { onEnter: () => void }) {
   const [heroReady, setHeroReady] = useState(false)
   const [loaderVisible, setLoaderVisible] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const navLinks = [
     { label: 'Home', href: `#${SECTION_IDS.hero}` },
@@ -1500,9 +1547,92 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
     warmAll(all)
   }, [])
 
+  useEffect(() => {
+    const closeMenu = () => setMobileNavOpen(false)
+    window.addEventListener('hashchange', closeMenu)
+    return () => window.removeEventListener('hashchange', closeMenu)
+  }, [])
+
   return (
     <div className="lp-root font-body relative w-full overflow-x-hidden bg-black">
       <OrbitalLoader visible={loaderVisible} />
+
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-3 pt-3 sm:px-6 lg:px-10">
+        <nav className="landing-nav-shell pointer-events-auto mx-auto flex max-w-7xl items-center justify-between gap-3 rounded-full px-3 py-2 sm:px-4">
+          <a
+            href={`#${SECTION_IDS.hero}`}
+            className="inline-flex items-center gap-3 text-white"
+            aria-label="Akashara Home"
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <BrandLogo size={40} imageClassName="scale-[0.88]" />
+            <span className="hidden text-sm font-semibold tracking-[0.2em] text-white/85 sm:inline">
+              AKASHARA
+            </span>
+          </a>
+
+          <div className="hidden items-center gap-1 md:flex">
+            {navLinks.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                className="rounded-full px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/8 hover:text-white"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEnter}
+              className="liquid-glass-strong hidden items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white sm:inline-flex"
+            >
+              Enter Cockpit
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setMobileNavOpen((open) => !open)}
+              className="liquid-glass inline-flex h-10 w-10 items-center justify-center rounded-full text-white md:hidden"
+              aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileNavOpen}
+            >
+              {mobileNavOpen ? <CloseIcon className="h-4 w-4" /> : <MenuIcon className="h-4 w-4" />}
+            </button>
+          </div>
+        </nav>
+
+        <div
+          className={`pointer-events-auto mx-auto mt-2 max-w-7xl transition duration-200 md:hidden ${
+            mobileNavOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'
+          }`}
+        >
+          <div className="landing-nav-shell rounded-[1.75rem] px-3 py-3">
+            <div className="flex flex-col gap-1">
+              {navLinks.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMobileNavOpen(false)}
+                  className="rounded-2xl px-4 py-3 text-sm font-medium text-white/92 transition hover:bg-white/8"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false)
+                  onEnter()
+                }}
+                className="liquid-glass-strong mt-2 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white"
+              >
+                Enter Cockpit
+                <ArrowUpRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ────────── SECTION 1 — HERO (NEW project-aligned content) ────────── */}
       <SectionFrame
@@ -1513,37 +1643,8 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
         trimEndSeconds={1.4}
         isHero
       >
-        <div className="relative flex h-screen flex-col">
-          <nav className="fixed left-0 right-0 top-4 z-50 flex items-center justify-between px-8 lg:px-16">
-            <a
-              href={`#${SECTION_IDS.hero}`}
-              className="liquid-glass flex h-12 w-12 items-center justify-center rounded-full"
-              aria-label="Akashara Home"
-            >
-              <span className="font-heading text-2xl italic text-white">a</span>
-            </a>
-            <div className="liquid-glass hidden items-center gap-0 rounded-full px-1.5 py-1.5 md:flex">
-              {navLinks.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="px-3 py-2 text-sm font-medium text-white/90 font-body"
-                >
-                  {item.label}
-                </a>
-              ))}
-              <button
-                onClick={onEnter}
-                className="ml-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white px-3 py-2 text-sm font-medium text-black"
-              >
-                Enter Cockpit
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="h-12 w-12" />
-          </nav>
-
-          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pt-24 text-center">
+        <div className="relative flex min-h-[100svh] flex-col">
+          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-12 pt-32 text-center sm:px-6 sm:pt-36 md:px-8 md:pb-14 md:pt-32">
             <motion.div
               initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
               animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
@@ -1604,9 +1705,9 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
               initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
               animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: 'easeOut', delay: 1.3 }}
-              className="mt-8 flex flex-wrap items-stretch justify-center gap-4"
+              className="hero-metrics-grid mt-8 grid w-full max-w-5xl grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3"
             >
-              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
+              <div className="liquid-glass min-w-0 rounded-[1.25rem] p-5 text-left">
                 <svg
                   className="h-7 w-7 text-white"
                   viewBox="0 0 24 24"
@@ -1624,7 +1725,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
                   Under full real-time streaming load
                 </div>
               </div>
-              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
+              <div className="liquid-glass min-w-0 rounded-[1.25rem] p-5 text-left">
                 <svg
                   className="h-7 w-7 text-white"
                   viewBox="0 0 24 24"
@@ -1643,7 +1744,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
                   Telemetry rows held live in memory
                 </div>
               </div>
-              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
+              <div className="liquid-glass min-w-0 rounded-[1.25rem] p-5 text-left">
                 <svg
                   className="h-7 w-7 text-white"
                   viewBox="0 0 24 24"
@@ -1669,7 +1770,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
             initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
             animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut', delay: 1.4 }}
-            className="relative z-10 pb-8"
+            className="relative z-10 px-4 pb-8 sm:px-6"
           >
             <div className="flex flex-col items-center gap-4 px-4 text-center">
               <div className="liquid-glass rounded-full px-3.5 py-1 text-xs font-medium text-white">

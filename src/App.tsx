@@ -17,6 +17,8 @@ import { Sidebar, SidebarToggleButton } from './components/shell/Sidebar'
 import { RowInspector } from './components/inspector/RowInspector'
 import { LandingPage } from './components/landing/LandingPage'
 import { DashboardBackground } from './components/shell/DashboardBackground'
+import { BrandLogo } from './components/common/BrandLogo'
+import { WarningTriangleIcon } from './components/common/AppIcons'
 
 function useDebugFlag(): boolean {
   const [on] = useState(() => new URLSearchParams(location.search).get('debug') === '1')
@@ -88,10 +90,10 @@ function Dashboard() {
           <div className="flex items-center gap-2.5">
             <a
               href="#"
-              className="liquid-glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white"
+              className="liquid-glass flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-white"
               title="Back to landing"
             >
-              <span className="font-heading text-lg">a</span>
+              <BrandLogo size={28} className="bg-transparent" imageClassName="scale-[0.88]" />
             </a>
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-white sm:text-base">
@@ -115,7 +117,7 @@ function Dashboard() {
 
         {error && (
           <div className="liquid-glass mx-3 mt-1 flex-shrink-0 rounded-xl px-3 py-2 text-sm text-danger">
-            ⚠️ {error}
+            <span className="inline-flex items-center gap-2"><WarningTriangleIcon className="h-4 w-4" /> {error}</span>
           </div>
         )}
 

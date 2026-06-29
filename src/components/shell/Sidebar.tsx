@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   Chart,
   BarController,
@@ -22,6 +23,13 @@ import { exportSnapshot } from '../../core/SnapshotExporter'
 import { sidebarStore } from '../../core/SidebarStore'
 import { formatCompactCurrency, formatInt, formatPercent } from '../../core/Sanitizer'
 import type { SidebarTab } from '../../core/SidebarStore'
+import {
+  AnalyticsIcon,
+  AntennaIcon,
+  DownloadIcon,
+  MenuIcon,
+  SettingsIcon,
+} from '../common/AppIcons'
 
 Chart.register(
   BarController, BarElement, CategoryScale,
@@ -31,11 +39,11 @@ Chart.register(
 )
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
-const TABS: { id: SidebarTab; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '📡' },
-  { id: 'activity', label: 'Activity', icon: '📈' },
-  { id: 'export', label: 'Export', icon: '⬇' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
+const TABS: { id: SidebarTab; label: string; icon: ReactNode }[] = [
+  { id: 'overview', label: 'Overview', icon: <AntennaIcon className="h-4 w-4" /> },
+  { id: 'activity', label: 'Activity', icon: <AnalyticsIcon className="h-4 w-4" /> },
+  { id: 'export', label: 'Export', icon: <DownloadIcon className="h-4 w-4" /> },
+  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="h-4 w-4" /> },
 ]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -231,7 +239,7 @@ function ActivityTab() {
         <div className="liquid-glass rounded-xl p-2.5 space-y-1">
           <StatRow
             label="Stream State"
-            value={isPaused ? '⏸ Paused' : '▶ Live'}
+            value={isPaused ? 'Paused' : 'Live'}
             accent={isPaused ? 'text-warn' : 'text-ok'}
           />
           <StatRow label="Total Ticks" value={formatInt(kpi.totalTicks)} />
@@ -317,7 +325,7 @@ function ExportTab() {
                 {progress ? `${Math.round((progress.done / progress.total) * 100)}%` : 'Preparing…'}
               </>
             ) : (
-              <>⬇ Download CSV</>
+              <><DownloadIcon className="h-4 w-4" /> Download CSV</>
             )}
           </button>
         </div>
@@ -573,7 +581,7 @@ export function SidebarToggleButton() {
       aria-pressed={state.open}
       className="liquid-glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-slate-300 hover:text-white"
     >
-      ☰
+      <MenuIcon className="h-4 w-4" />
       <span className="hidden sm:inline text-xs">{state.open ? 'Hide Panel' : 'Show Panel'}</span>
     </button>
   )

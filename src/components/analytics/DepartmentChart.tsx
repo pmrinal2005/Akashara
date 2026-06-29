@@ -4,6 +4,7 @@ import {
 } from 'chart.js'
 import { store } from '../../core/engine'
 import { formatCompactCurrency, formatCurrency } from '../../core/Sanitizer'
+import { CurrencyIcon } from '../common/AppIcons'
 
 Chart.register(BarController, BarElement, CategoryScale, Legend, LinearScale, Title, Tooltip)
 
@@ -95,8 +96,8 @@ export function DepartmentChart() {
       aria-label="Annual savings by department"
       className="liquid-glass chart-panel flex h-full min-w-0 flex-col rounded-2xl p-4"
     >
-      <h2 className="mb-3 text-sm font-semibold text-accent-soft">
-        💹 Top Departments by Annual Savings (live)
+      <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-accent-soft">
+        <CurrencyIcon className="h-4 w-4" /> Top Departments by Annual Savings (live)
       </h2>
       <div className="relative min-h-[260px] w-full flex-1">
         <canvas ref={canvasRef} />

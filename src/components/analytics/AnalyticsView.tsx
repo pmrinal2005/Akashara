@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
 import {
   Chart,
   ArcElement,
@@ -24,6 +25,15 @@ import {
   formatPercent,
 } from '../../core/Sanitizer'
 import type { RpaRow } from '../../core/types'
+import {
+  AnalyticsIcon,
+  BankIcon,
+  ClockIcon,
+  CloseIcon,
+  CurrencyIcon,
+  RobotIcon,
+  TrendUpIcon,
+} from '../common/AppIcons'
 
 Chart.register(
   ArcElement,
@@ -132,7 +142,7 @@ function KpiTile({
   value,
   accent,
 }: {
-  icon: string
+  icon: ReactNode
   label: string
   value: string
   accent?: string
@@ -140,7 +150,7 @@ function KpiTile({
   return (
     <div className="liquid-glass flex min-w-0 flex-col rounded-xl px-3 py-2.5">
       <span className="text-[10px] uppercase tracking-wider text-slate-300">
-        {icon} {label}
+        <span className="inline-flex items-center gap-1.5">{icon}<span>{label}</span></span>
       </span>
       <span className={`tnum mt-0.5 truncate text-sm font-bold sm:text-base ${accent ?? 'text-white'}`}>
         {value}
@@ -455,7 +465,7 @@ export function AnalyticsView() {
         <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
             <h2 className="flex flex-wrap items-center gap-2 text-sm font-bold text-white sm:text-base">
-              📊 Analytics View
+              <AnalyticsIcon className="h-4 w-4" /> Analytics View
               <span className="liquid-glass inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warn sm:text-[10.5px]">
                 Frozen Snapshot
               </span>
@@ -469,19 +479,19 @@ export function AnalyticsView() {
             className="liquid-glass flex-shrink-0 rounded-full px-3 py-1.5 text-xs text-slate-200 hover:text-white"
             aria-label="Close analytics view"
           >
-            ✕ Esc
+            <span className="inline-flex items-center gap-1.5"><CloseIcon className="h-3.5 w-3.5" /> Esc</span>
           </button>
         </header>
 
         {/* ── KPI Strip ─────────────────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-white/10 px-3 py-2.5 sm:px-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <KpiTile icon="📊" label="Projects" value={formatInt(agg.totalProjects)} accent="text-accent-soft" />
-            <KpiTile icon="🤖" label="Robots" value={formatInt(agg.totalRobots)} accent="text-accent" />
-            <KpiTile icon="💰" label="Savings" value={formatCompactCurrency(agg.totalSavings)} accent="text-ok" />
-            <KpiTile icon="🏦" label="Budget" value={formatCompactCurrency(agg.totalBudget)} />
-            <KpiTile icon="📈" label="Avg ROI" value={formatPercent(agg.avgRoi)} accent="text-warn" />
-            <KpiTile icon="⏱️" label="Hours Saved" value={formatInt(agg.totalHours)} />
+            <KpiTile icon={<AnalyticsIcon className="h-3.5 w-3.5" />} label="Projects" value={formatInt(agg.totalProjects)} accent="text-accent-soft" />
+            <KpiTile icon={<RobotIcon className="h-3.5 w-3.5" />} label="Robots" value={formatInt(agg.totalRobots)} accent="text-accent" />
+            <KpiTile icon={<CurrencyIcon className="h-3.5 w-3.5" />} label="Savings" value={formatCompactCurrency(agg.totalSavings)} accent="text-ok" />
+            <KpiTile icon={<BankIcon className="h-3.5 w-3.5" />} label="Budget" value={formatCompactCurrency(agg.totalBudget)} />
+            <KpiTile icon={<TrendUpIcon className="h-3.5 w-3.5" />} label="Avg ROI" value={formatPercent(agg.avgRoi)} accent="text-warn" />
+            <KpiTile icon={<ClockIcon className="h-3.5 w-3.5" />} label="Hours Saved" value={formatInt(agg.totalHours)} />
           </div>
         </div>
 
@@ -496,19 +506,19 @@ export function AnalyticsView() {
         */}
         <div className="glass-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
           <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-            <ChartCard title="💹 Top Departments by Annual Savings" subtitle="Top 10">
+            <ChartCard title="Top Departments by Annual Savings" subtitle="Top 10">
               <DeptSavingsBar data={agg.byDepartmentSavings} />
             </ChartCard>
 
-            <ChartCard title="🧭 Project Status Distribution">
+            <ChartCard title="Project Status Distribution">
               <StatusDoughnut data={agg.byStatus} />
             </ChartCard>
 
-            <ChartCard title="🤖 Top Automation Types by Robots Deployed" subtitle="Top 10">
+            <ChartCard title="Top Automation Types by Robots Deployed" subtitle="Top 10">
               <AutomationRobotsBar data={agg.byAutomationRobots} />
             </ChartCard>
 
-            <ChartCard title="📈 ROI Distribution (histogram)">
+            <ChartCard title="ROI Distribution (histogram)">
               <RoiHistogram data={agg.roiBins} />
             </ChartCard>
           </div>
@@ -516,7 +526,7 @@ export function AnalyticsView() {
 
         {/* ── Footer ────────────────────────────────────────────────────── */}
         <footer className="flex-shrink-0 border-t border-white/10 px-4 py-2 text-[10px] text-slate-400 sm:text-[11px]">
-          📌 Chart.js v4 · all aggregations computed once over the paused store snapshot
+          Chart.js v4 · all aggregations computed once over the paused store snapshot
         </footer>
       </div>
     </>

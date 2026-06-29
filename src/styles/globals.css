@@ -307,6 +307,101 @@ body {
   }
 }
 
+.lp-root section[id] {
+  scroll-margin-top: 104px;
+}
+
+.landing-nav-shell {
+  background: rgba(7, 10, 20, 0.38);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hero-metrics-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+.testimonial-marquee-shell {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 1) 8%, rgba(0, 0, 0, 1) 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 1) 8%, rgba(0, 0, 0, 1) 92%, transparent 100%);
+}
+
+.testimonial-marquee {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  padding: 0.25rem 0;
+  will-change: transform;
+}
+
+.testimonial-marquee--forward {
+  animation: testimonialForward 34s linear infinite;
+}
+
+.testimonial-marquee--reverse {
+  animation: testimonialReverse 34s linear infinite;
+}
+
+.testimonial-marquee:hover,
+.testimonial-marquee:focus-within {
+  animation-play-state: paused;
+}
+
+.testimonial-card {
+  --testimonial-rotate-x: 0deg;
+  --testimonial-rotate-y: 0deg;
+  --testimonial-glow-x: 50%;
+  --testimonial-glow-y: 50%;
+  transform: perspective(1200px) rotateX(var(--testimonial-rotate-x)) rotateY(var(--testimonial-rotate-y)) translateY(0);
+  transform-style: preserve-3d;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.testimonial-card:hover,
+.testimonial-card:focus-visible {
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.testimonial-card__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--testimonial-glow-x) var(--testimonial-glow-y), rgba(255, 255, 255, 0.18), transparent 42%);
+  opacity: 0.8;
+}
+
+@keyframes testimonialForward {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes testimonialReverse {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 767px) {
+  .landing-nav-shell {
+    border-radius: 1.5rem;
+  }
+}
+
 /* ============================================================
    TASK 1.2 — ANIMATED COLOURFUL GRADIENT BACKGROUND
    Used by the three new bottom landing sections (Testimonials,
