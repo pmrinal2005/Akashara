@@ -110,6 +110,19 @@ function MultiSelect({ field, label }: { field: FilterField; label: string }) {
     viewPool.setFilter({ [field]: new Set<string>() } as Partial<FilterSpec>)
   }
 
+  /* Task 2 — dashboard-wide reset broadcasts `rpa-monitor:reset-filters`.
+     We just empty our local selection; the WidgetVisibility reset handler
+     has already cleared the matching set on the ViewPool, so we only need
+     to sync the UI badge here. */
+  useEffect(() => {
+    const onReset = () => {
+      setSelected(new Set())
+      setOpen(false)
+    }
+    window.addEventListener('rpa-monitor:reset-filters', onReset)
+    return () => window.removeEventListener('rpa-monitor:reset-filters', onReset)
+  }, [])
+
   /* Compute the panel's resolved position (with viewport clamping so it
      never spills off the right edge on narrow mobile screens). */
   const panelStyle = useMemo<React.CSSProperties | null>(() => {

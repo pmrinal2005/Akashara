@@ -10,6 +10,14 @@ export function FuzzySearchBar() {
     workerBridge.search(value)
   }, [value])
 
+  /* Task 2 — the dashboard-wide Reset button broadcasts this event
+     so we can clear the controlled input without prop-drilling. */
+  useEffect(() => {
+    const onReset = () => setValue('')
+    window.addEventListener('rpa-monitor:reset-search', onReset)
+    return () => window.removeEventListener('rpa-monitor:reset-search', onReset)
+  }, [])
+
   return (
     <div className="liquid-glass relative flex-1 min-w-[180px] rounded-full">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300">

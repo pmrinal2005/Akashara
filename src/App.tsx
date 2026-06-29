@@ -82,8 +82,12 @@ function Dashboard() {
           decorative; the shell below adds .dashboard-shell to claim z:1. */}
       <DashboardBackground />
 
-      {/* Root: full viewport flex column */}
-      <div className="dashboard-shell flex h-full flex-col overflow-hidden">
+      {/* Root: full viewport flex column.
+          Task 4 — the matching `@media (max-width: 1024px)` rule in
+          globals.css overrides `h-full overflow-hidden` so the whole
+          shell becomes vertically scrollable on phones / small tablets
+          while preserving the desktop fixed-height app-shell model. */}
+      <div className="dashboard-shell flex h-full min-h-screen flex-col overflow-hidden">
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <header className="liquid-glass flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
           {/* Left: logo + title */}
@@ -141,7 +145,7 @@ function Dashboard() {
         </WidgetGate>
 
         {/* ── Main content: sidebar + widgets ────────────────────────────── */}
-        <div className="flex min-h-0 flex-1 gap-2 overflow-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+        <div className="dashboard-main flex min-h-0 flex-1 gap-2 overflow-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
           <Sidebar />
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-stretch">

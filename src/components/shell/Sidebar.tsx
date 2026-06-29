@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   Chart,
@@ -348,6 +348,29 @@ function ExportTab() {
 }
 
 // ── Settings Tab ─────────────────────────────────────────────────────────────
+/* Task 3 — the accent palette is exposed to Tailwind via two CSS
+   variables (`--color-accent` and `--color-accent-soft`).  Each
+   swatch in the picker maps to a pair of "R G B" triples (the
+   Tailwind config wraps them with `rgb(var(...) / <alpha>)`).
+   Writing both vars on :root makes every Tailwind utility that
+   uses `accent` re-paint instantly, no reload required. */
+const ACCENT_MAP: Record<string, { hex: string; main: string; soft: string }> = {
+  blue:   { hex: '#38bdf8', main: '56 189 248',  soft: '125 211 252' },
+  purple: { hex: '#a78bfa', main: '167 139 250', soft: '196 181 253' },
+  green:  { hex: '#4ade80', main: '74 222 128',  soft: '134 239 172' },
+  orange: { hex: '#fb923c', main: '251 146 60',  soft: '253 186 116' },
+  pink:   { hex: '#f472b6', main: '244 114 182', soft: '249 168 212' },
+}
+
+/** Apply an accent key to :root. Re-used by both the picker and the
+ *  cross-component reset listener. */
+function writeAccentVars(key: string) {
+  const entry = ACCENT_MAP[key] ?? ACCENT_MAP.blue
+  const root = document.documentElement
+  root.style.setProperty('--color-accent', entry.main)
+  root.style.setProperty('--color-accent-soft', entry.soft)
+}
+
 function SettingsTab() {
   const [rowHeight, setRowHeight] = useState(() => {
     try { return parseInt(localStorage.getItem('rpa-monitor:rowHeight') ?? '34') } catch { return 34 }
@@ -359,25 +382,56 @@ function SettingsTab() {
     return window.location.search.includes('debug=1')
   })
 
+  /* Hydrate the CSS vars from persisted state on mount so a hard
+     refresh doesn't flash the default sky-blue before the picker
+     state syncs back in. */
+  useEffect(() => {
+    writeAccentVars(accentColor)
+    document.documentElement.style.setProperty('--row-height', `${rowHeight}px`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const applyRowHeight = (h: number) => {
     setRowHeight(h)
     try { localStorage.setItem('rpa-monitor:rowHeight', String(h)) } catch {}
     document.documentElement.style.setProperty('--row-height', `${h}px`)
   }
 
-  const accentMap: Record<string, string> = {
-    blue: '#38bdf8',
-    purple: '#a78bfa',
-    green: '#4ade80',
-    orange: '#fb923c',
-    pink: '#f472b6',
-  }
-
+  /* Task 3 fix — instantly repaint by writing BOTH CSS variables
+     that Tailwind's `accent` palette resolves against. The old
+     implementation only wrote a single var that the compiled
+     CSS never consumed, so the change appeared to need a reload. */
   const applyAccent = (key: string) => {
     setAccentColor(key)
     try { localStorage.setItem('rpa-monitor:accent', key) } catch {}
-    document.documentElement.style.setProperty('--color-accent', accentMap[key] ?? '#38bdf8')
+    writeAccentVars(key)
   }
+
+  /* Task 2 wire-up — the header's Reset Layout button also broadcasts
+     a `rpa-monitor:reset-settings` event so this tab can restore its
+     own state (row height, accent, debug) without the user having to
+     click each one individually. */
+  const resetSettings = useCallback(() => {
+    setRowHeight(34)
+    try { localStorage.removeItem('rpa-monitor:rowHeight') } catch {}
+    document.documentElement.style.setProperty('--row-height', '34px')
+
+    setAccentColor('blue')
+    try { localStorage.removeItem('rpa-monitor:accent') } catch {}
+    writeAccentVars('blue')
+
+    if (window.location.search.includes('debug=1')) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('debug')
+      window.history.replaceState({}, '', url.toString())
+    }
+    setShowDebug(false)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('rpa-monitor:reset-settings', resetSettings)
+    return () => window.removeEventListener('rpa-monitor:reset-settings', resetSettings)
+  }, [resetSettings])
 
   const toggleDebug = () => {
     const next = !showDebug
@@ -420,7 +474,7 @@ function SettingsTab() {
         </h4>
         <div className="liquid-glass rounded-xl p-2.5">
           <div className="flex flex-wrap gap-2">
-            {Object.entries(accentMap).map(([key, hex]) => (
+            {Object.entries(ACCENT_MAP).map(([key, { hex }]) => (
               <button
                 key={key}
                 onClick={() => applyAccent(key)}
@@ -434,7 +488,7 @@ function SettingsTab() {
               />
             ))}
           </div>
-          <p className="mt-1 text-[10px] text-slate-500">Reloads on next session for full effect</p>
+          <p className="mt-1 text-[10px] text-slate-500">Updates instantly across the entire workspace</p>
         </div>
       </section>
 

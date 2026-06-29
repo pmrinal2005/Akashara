@@ -6,6 +6,15 @@
   --row-height: 36px;
   --grid-overscan: 8;
   color-scheme: dark;
+
+  /* Task 3 — accent palette is driven by these two CSS variables.
+     Tailwind's `text-accent`, `bg-accent/30`, `text-accent-soft`, etc.
+     are configured (tailwind.config.cjs) to read from these vars via
+     `rgb(var(--color-accent) / <alpha>)`. The SettingsTab in the
+     Sidebar writes new values to these on every accent-swatch click,
+     so the whole UI re-paints instantly — no reload required. */
+  --color-accent: 56 189 248;        /* #38bdf8 — sky    (default) */
+  --color-accent-soft: 125 211 252;  /* #7dd3fc — sky-soft */
 }
 
 html,
@@ -602,6 +611,86 @@ body {
 .dashboard-shell {
   position: relative;
   z-index: 1;
+}
+
+/* ============================================================
+   TASK 4 — MOBILE RESPONSIVE DASHBOARD SCROLLING
+   ────────────────────────────────────────────────────────────
+   On desktop the dashboard is a strict fixed-height app shell
+   (`h-full overflow-hidden` on .dashboard-shell) so the virtual
+   grid can claim the remaining vertical space. That model breaks
+   on phones: the wrapped header controls + KPI strip + filters
+   + sidebar + grid + chart cannot all fit, and `overflow-hidden`
+   prevents the page from scrolling at all.
+
+   Below ≤ 1024 px we relax the shell into a regular vertical
+   document: `min-height: 100%` lets the page grow, and
+   `overflow-y: auto` on the body + the shell makes the whole
+   thing scrollable while every child keeps its own layout and
+   alignment intact. The widgets themselves get a sensible
+   `min-height` so they don't collapse into nothing.
+   ============================================================ */
+@media (max-width: 1024px) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-shell {
+    height: auto !important;
+    min-height: 100vh;
+    overflow: visible !important;
+  }
+
+  /* The main content row (sidebar + grid + chart) was a flex row
+     with `min-h-0 flex-1 overflow-hidden`. On mobile we stack it
+     vertically and let each child size itself. */
+  .dashboard-main {
+    flex-direction: column !important;
+    min-height: 0;
+    overflow: visible !important;
+    flex: 0 0 auto !important;
+  }
+
+  .dashboard-main > * {
+    width: 100% !important;
+    flex-basis: auto !important;
+    min-width: 0;
+  }
+
+  /* Sidebar: when collapsed on mobile let the toggle pill float in;
+     when expanded it becomes a regular stacked block so it doesn't
+     consume the entire viewport. */
+  .sidebar-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: none;
+  }
+
+  /* Virtual grid still needs a bounded height so its inner scroller
+     works — give it a comfortable mobile viewport. */
+  .vgrid-viewport {
+    max-height: 70vh;
+    min-height: 360px;
+  }
+
+  /* Department chart panel needs an explicit height when stacked. */
+  .dashboard-shell .chartjs-render-monitor,
+  .dashboard-shell canvas {
+    max-width: 100% !important;
+  }
+}
+
+/* Phones: tighten the analytics overlay too. */
+@media (max-width: 640px) {
+  .vgrid-spacer {
+    min-width: 980px; /* horizontal scroll the grid on tiny screens */
+  }
 }
 
 /* ============================================================

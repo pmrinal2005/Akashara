@@ -50,6 +50,10 @@ type FadingVideoProps = {
   trimEndSeconds?: number
   onReady?: () => void
   isHero?: boolean
+  /* Task 1 — when true, the <video> element is horizontally
+     flipped via `transform: scaleX(-1)`. Used by the "Worlds"
+     section to mirror its new section3.mp4 background. */
+  mirror?: boolean
 }
 
 type CapabilityCard = {
@@ -78,6 +82,12 @@ type CreativeSection = {
   title: string
   subtitle: string
   video: string
+  /* Task 1 — optional per-section flag that tells SectionFrame to
+     render the background video horizontally flipped. Applied to
+     the "Worlds" chapter so its replaced section3.mp4 reads as a
+     mirror image while keeping the silent, infinite loop behaviour
+     untouched. */
+  mirrorVideo?: boolean
   layout: LayoutKind
   highlights: string[]
   stats: { value: string; label: string }[]
@@ -135,7 +145,12 @@ const creativeSections: CreativeSection[] = [
     title: 'Every industry, every country, one calm horizon',
     subtitle:
       'From banking floors in Mumbai to logistics hubs in Rotterdam, Akashara gathers automation footprints from every corner of the planet and lays them side by side, so an operator can sense the global rhythm at a glance.',
-    video: EXTRA_VIDEOS[1],
+    /* Task 1 — Section 2 ("Worlds") now plays section3.mp4 as its
+       background, horizontally mirrored, and continues to loop
+       silently in the infinite seamless playback baked into
+       FadingVideo. */
+    video: '/section3.mp4',
+    mirrorVideo: true,
     layout: 'signal-grid',
     highlights: ['Cross-industry view', 'Borderless coverage', 'Unified language', 'Shared lens'],
     stats: [
@@ -358,9 +373,17 @@ function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
   return { ref, resolvedSrc }
 }
 
-function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }: FadingVideoProps) {
+function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero, mirror }: FadingVideoProps) {
   void trimEndSeconds
   const { ref, resolvedSrc } = useFadingVideo({ src, onReady, isHero })
+  /* Task 1 — merge the optional horizontal-flip transform into
+     whatever style was already passed in. `scaleX(-1)` mirrors the
+     video purely on the GPU compositor, so there's zero CPU cost
+     and the infinite `loop` attribute below keeps playing it back
+     forever without interruption. */
+  const mergedStyle: React.CSSProperties | undefined = mirror
+    ? { ...(style ?? {}), transform: `${style?.transform ?? ''} scaleX(-1)`.trim() }
+    : style
   return (
     <video
       ref={ref}
@@ -371,7 +394,7 @@ function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }:
       playsInline
       preload="auto"
       className={className}
-      style={style}
+      style={mergedStyle}
     />
   )
 }
@@ -528,6 +551,7 @@ function SectionFrame({
   onReady,
   trimEndSeconds = DEFAULT_TRIM_SECONDS,
   isHero = false,
+  mirror = false,
 }: {
   id?: string
   video: string
@@ -537,6 +561,9 @@ function SectionFrame({
   onReady?: () => void
   trimEndSeconds?: number
   isHero?: boolean
+  /* Task 1 — pass-through to FadingVideo so individual sections can
+     opt into a horizontally flipped background video. */
+  mirror?: boolean
 }) {
   return (
     <section id={id} className={`section-seam relative isolate min-h-screen w-full overflow-x-clip overflow-y-visible bg-black ${className}`}>
@@ -545,6 +572,7 @@ function SectionFrame({
         trimEndSeconds={trimEndSeconds}
         onReady={onReady}
         isHero={isHero}
+        mirror={mirror}
         className={
           heroScale
             ? 'absolute left-1/2 top-0 z-0 -translate-x-1/2 object-cover object-top'
@@ -1846,7 +1874,13 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
 
       {/* ────────── Creative chapters with video backgrounds ────────── */}
       {creativeSections.map((section) => (
-        <SectionFrame key={section.id} id={section.id} video={section.video} className="landing-stack-section">
+        <SectionFrame
+          key={section.id}
+          id={section.id}
+          video={section.video}
+          mirror={section.mirrorVideo}
+          className="landing-stack-section"
+        >
           {renderCreativeSection(section, onEnter)}
         </SectionFrame>
       ))}

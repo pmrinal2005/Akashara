@@ -1,4 +1,21 @@
 /** @type {import('tailwindcss').Config} */
+/*
+ * Tailwind configuration — Task 3 (Accent Colour Picker)
+ * ──────────────────────────────────────────────────────────────────────────
+ * The `accent` and `accent-soft` colours were previously hard-coded to
+ * `#38bdf8` / `#7dd3fc`. That meant the runtime accent picker in the
+ * sidebar's Settings tab could only persist a value to localStorage and
+ * a `--color-accent` CSS variable that NOTHING in the compiled CSS
+ * actually consumed — so a hard refresh was the only way to see a new
+ * accent applied (and even that didn't really work because Tailwind
+ * never read the variable).
+ *
+ * Fix: the accent palette is now defined as `rgb(var(--color-accent) / <alpha>)`
+ * / `rgb(var(--color-accent-soft) / <alpha>)`. The SettingsTab simply
+ * writes those two CSS variables on :root and EVERY Tailwind utility
+ * that uses `text-accent`, `bg-accent/30`, `text-accent-soft`, etc.
+ * re-paints instantly without any reload.
+ */
 module.exports = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
@@ -12,8 +29,8 @@ module.exports = {
           500: '#334155',
         },
         accent: {
-          DEFAULT: '#38bdf8',
-          soft: '#7dd3fc',
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          soft: 'rgb(var(--color-accent-soft) / <alpha-value>)',
         },
         ok: '#4ade80',
         warn: '#fbbf24',

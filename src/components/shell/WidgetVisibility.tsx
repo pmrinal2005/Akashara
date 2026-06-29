@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { LayoutState } from '../../hooks/usePersistedLayout'
+import { viewPool } from '../../core/engine'
 
 export function WidgetGate({ show, children }: { show: boolean; children: ReactNode }) {
   if (!show) return null
@@ -20,14 +21,55 @@ const TOGGLES: { key: keyof LayoutState; label: string }[] = [
 ]
 
 export function VisibilityControls({ layout, toggle, reset }: ControlsProps) {
-  /* Task 3 fix — the reset handler is now wrapped in `e.preventDefault` so
-     it can never bubble into an enclosing form, and we use `type=button`
-     to be explicit.  The visual treatment also makes it look like a real
-     interactive control. */
+  /*
+   * Task 2 — the Reset button used to ONLY call the layout reset hook.
+   * When every panel was already visible (the default) clicking the
+   * button produced no visible change, so it looked broken.
+   *
+   * The new behaviour is a real "dashboard reset":
+   *   1. Restore default widget visibility (the original hook call).
+   *   2. Clear all categorical filters (automation_type, department,
+   *      industry, project_status) in the ViewPool.
+   *   3. Reset the sort spec back to the default `roi_percent desc`.
+   *   4. Clear the fuzzy-search query.
+   *   5. Broadcast `rpa-monitor:reset-search` so the search bar
+   *      empties its controlled input, and `rpa-monitor:reset-settings`
+   *      so the sidebar's Settings tab (row height, accent, debug)
+   *      goes back to defaults too.
+   *
+   * All of this is synchronous and idempotent — clicking it twice is
+   * safe and yields the same final state.
+   */
   const handleReset = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // 1. Widget visibility
     reset()
+
+    // 2. + 3. View-pool projection: filters + sort
+    try {
+      viewPool.setFilter({
+        automation_type: new Set<string>(),
+        department: new Set<string>(),
+        industry: new Set<string>(),
+        project_status: new Set<string>(),
+      })
+      viewPool.setSort([{ field: 'roi_percent', dir: 'desc' }])
+      // 4. Search
+      viewPool.setSearchResult(null, '')
+    } catch {
+      /* engine not yet initialised — ignore */
+    }
+
+    // 5. Notify dependent UIs to clear their local controlled state.
+    try {
+      window.dispatchEvent(new CustomEvent('rpa-monitor:reset-search'))
+      window.dispatchEvent(new CustomEvent('rpa-monitor:reset-settings'))
+      window.dispatchEvent(new CustomEvent('rpa-monitor:reset-filters'))
+    } catch {
+      /* CustomEvent not supported (very old browser) — ignore */
+    }
   }
 
   return (
@@ -53,8 +95,8 @@ export function VisibilityControls({ layout, toggle, reset }: ControlsProps) {
       <button
         type="button"
         onClick={handleReset}
-        title="Restore all panels to default visibility"
-        aria-label="Reset layout to defaults"
+        title="Restore panels, filters, sort, search and settings to defaults"
+        aria-label="Reset dashboard"
         className="liquid-glass inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-slate-200 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
       >
         <svg
