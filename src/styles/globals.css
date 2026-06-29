@@ -134,16 +134,7 @@ body {
   color: #fff;
 }
 
-/* ─── Task 2 — SECTION BLENDING ───────────────────────────────────────────
-   Each section visually "melts" into the next using two black-fade
-   gradients clipped INSIDE the section bounds (no negative offsets), so
-   the gradients never extend across content of the neighbouring section.
-   We also keep the section stack offset so two videos overlap and blend
-   smoothly instead of butting at a hard edge.
-   ─────────────────────────────────────────────────────────────────────────── */
 .landing-stack-section {
-  /* No more negative margin — that's what was causing the seam to "cut
-     through" elements in the previous section. Sections stack cleanly. */
   margin-top: 0;
   padding-top: 0;
 }
@@ -154,30 +145,22 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 4;             /* above darken overlay but below content */
+  z-index: 4;
   pointer-events: none;
 }
 
-/* Top fade-in band — stays INSIDE the section (top:0) so it can never
-   bleed into the previous section's content. */
 .section-seam::before {
   top: 0;
   height: 140px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 35%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* Bottom fade-out band — stays INSIDE the section (bottom:0). */
 .section-seam::after {
   bottom: 0;
   height: 160px;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 35%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* ─── Task 1 — BACKGROUND VIDEO DARKENING ────────────────────────────────
-   Sits on z-index 1 (above video, below seam + content) and darkens the
-   entire background just enough to lift the white liquid-glass UI on top.
-   Static gradient → zero per-frame paint cost.
-   ─────────────────────────────────────────────────────────────────────────── */
 .section-darken {
   background:
     radial-gradient(ellipse at center, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.52) 60%, rgba(0, 0, 0, 0.68) 100%),
@@ -322,6 +305,208 @@ body {
   100% {
     transform: translateX(360%);
   }
+}
+
+/* ============================================================
+   TASK 1.2 — ANIMATED COLOURFUL GRADIENT BACKGROUND
+   Used by the three new bottom landing sections (Testimonials,
+   FAQ, Trust).  Pure CSS, GPU-only transforms — zero JS, zero
+   per-frame paint cost on the main thread.
+   ============================================================ */
+.gradient-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.gradient-bg--aurora {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(56, 189, 248, 0.18), transparent 60%),
+    radial-gradient(110% 90% at 100% 100%, rgba(167, 139, 250, 0.18), transparent 60%),
+    linear-gradient(135deg, #050d24 0%, #0a1230 45%, #14092e 100%);
+}
+
+.gradient-bg--sunset {
+  background:
+    radial-gradient(110% 90% at 10% 0%, rgba(244, 114, 182, 0.22), transparent 60%),
+    radial-gradient(110% 90% at 100% 100%, rgba(251, 146, 60, 0.18), transparent 55%),
+    linear-gradient(135deg, #190a23 0%, #2c0d2f 45%, #2a0b1e 100%);
+}
+
+.gradient-bg--oceanic {
+  background:
+    radial-gradient(110% 90% at 0% 100%, rgba(34, 211, 238, 0.22), transparent 55%),
+    radial-gradient(110% 90% at 100% 0%, rgba(74, 222, 128, 0.18), transparent 60%),
+    linear-gradient(135deg, #04111b 0%, #062028 45%, #082035 100%);
+}
+
+.gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.gradient-blob--a {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.9) 0%, transparent 70%);
+  animation: gradientBlobA 24s ease-in-out infinite;
+}
+
+.gradient-blob--b {
+  width: 460px;
+  height: 460px;
+  top: 30%;
+  right: -120px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.9) 0%, transparent 70%);
+  animation: gradientBlobB 30s ease-in-out infinite;
+}
+
+.gradient-blob--c {
+  width: 540px;
+  height: 540px;
+  bottom: -160px;
+  left: 30%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.85) 0%, transparent 70%);
+  animation: gradientBlobC 36s ease-in-out infinite;
+}
+
+.gradient-blob--d {
+  width: 380px;
+  height: 380px;
+  top: 12%;
+  left: 40%;
+  background: radial-gradient(circle, rgba(74, 222, 128, 0.75) 0%, transparent 70%);
+  animation: gradientBlobD 28s ease-in-out infinite;
+}
+
+.gradient-bg--sunset .gradient-blob--a {
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.95) 0%, transparent 70%);
+}
+.gradient-bg--sunset .gradient-blob--b {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.95) 0%, transparent 70%);
+}
+.gradient-bg--sunset .gradient-blob--c {
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.95) 0%, transparent 70%);
+}
+.gradient-bg--sunset .gradient-blob--d {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.85) 0%, transparent 70%);
+}
+
+.gradient-bg--oceanic .gradient-blob--a {
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.95) 0%, transparent 70%);
+}
+.gradient-bg--oceanic .gradient-blob--b {
+  background: radial-gradient(circle, rgba(74, 222, 128, 0.9) 0%, transparent 70%);
+}
+.gradient-bg--oceanic .gradient-blob--c {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.95) 0%, transparent 70%);
+}
+.gradient-bg--oceanic .gradient-blob--d {
+  background: radial-gradient(circle, rgba(125, 211, 252, 0.8) 0%, transparent 70%);
+}
+
+@keyframes gradientBlobA {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(120px, 80px, 0) scale(1.1); }
+  50% { transform: translate3d(60px, 220px, 0) scale(0.95); }
+  75% { transform: translate3d(-60px, 140px, 0) scale(1.05); }
+}
+
+@keyframes gradientBlobB {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(-120px, 60px, 0) scale(0.92); }
+  50% { transform: translate3d(-200px, -120px, 0) scale(1.1); }
+  75% { transform: translate3d(-80px, -60px, 0) scale(1); }
+}
+
+@keyframes gradientBlobC {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(80px, -120px, 0) scale(1.08); }
+  50% { transform: translate3d(-60px, -260px, 0) scale(0.95); }
+  75% { transform: translate3d(-160px, -120px, 0) scale(1.04); }
+}
+
+@keyframes gradientBlobD {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(-80px, 100px, 0) scale(1.06); }
+  50% { transform: translate3d(140px, 200px, 0) scale(0.92); }
+  75% { transform: translate3d(80px, 60px, 0) scale(1.08); }
+}
+
+/* ============================================================
+   TASK 4 — DASHBOARD ANIMATED GRID + PARTICLE BACKGROUND
+   The DashboardBackground component paints a canvas behind the
+   entire dashboard with moving colourful particles AND a calm
+   grid overlay.  The CSS below provides the static grid layer
+   so the canvas only has to animate the dots — this keeps the
+   GPU happy and frees the main thread for the telemetry engine.
+   ============================================================ */
+.dashboard-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dashboard-bg__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center center;
+  mask-image: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 60%, rgba(0, 0, 0, 0.4) 100%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 60%, rgba(0, 0, 0, 0.4) 100%);
+  animation: gridDrift 60s linear infinite;
+}
+
+.dashboard-bg__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px circle at 12% 18%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(800px circle at 88% 80%, rgba(167, 139, 250, 0.12), transparent 60%),
+    radial-gradient(700px circle at 50% 50%, rgba(74, 222, 128, 0.06), transparent 60%);
+  animation: bgGlowDrift 20s ease-in-out infinite alternate;
+}
+
+.dashboard-bg__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.9;
+}
+
+@keyframes gridDrift {
+  from { background-position: 0 0; }
+  to { background-position: 480px 480px; }
+}
+
+@keyframes bgGlowDrift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(20px, -16px, 0);
+    opacity: 0.85;
+  }
+}
+
+/* Make sure the dashboard chrome (header / panels) sits ABOVE the bg. */
+.dashboard-shell {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================================
@@ -509,7 +694,6 @@ body {
 }
 
 @media (max-width: 768px) {
-  /* Task 2 — Mobile uses the same clean stacking; seam bands stay slimmer */
   .landing-stack-section {
     margin-top: 0;
     padding-top: 0;
@@ -525,8 +709,6 @@ body {
     height: 112px;
   }
 
-  /* A bit more darkening on small screens because text overlays sit closer
-     to busy parts of the video. */
   .section-darken {
     background:
       radial-gradient(ellipse at center, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.58) 60%, rgba(0, 0, 0, 0.72) 100%),
@@ -570,34 +752,49 @@ body {
 }
 
 /* ============================================================
-   ANALYTICS MODAL — Task 3 Fix
-   Ensures the modal is true full-screen on mobile (inset-0)
-   and a pleasant rounded-panel on larger screens (inset-2).
-   The chart grid must fill the available flex height correctly.
+   ANALYTICS MODAL — TASK 2 FIX
+   ============================================================
+   Bug: the modal was anchored only to the bottom half of the
+   viewport, behaving like a bottom sheet.
+   Root cause: `.liquid-glass-strong` set `position: relative`
+   in our own CSS — and because that selector lives in a
+   .css file loaded AFTER Tailwind's utility layer, its
+   `position: relative` won the cascade against Tailwind's
+   `fixed inset-0`.  The container was thus laid out in normal
+   flow inside the React tree, which placed it under the page
+   content — visually appearing as a partial overlay.
+   Fix: the `.analytics-modal` selector now forces `position:
+   fixed` with `!important`, anchors the rectangle to the full
+   viewport via `inset: 0 !important`, and locks width/height
+   to 100vw × 100vh on every screen size.
    ============================================================ */
-/* ─── Task 4 — ANALYTICS MODAL: FULL-SCREEN ON EVERY VIEWPORT ─────────────────
-   The modal now occupies the entire viewport (inset: 0) regardless of
-   screen size. We drop the rounded "floating panel" treatment used on
-   wider screens in the previous version — user explicitly asked for the
-   popup to span the full screen.
-   ─────────────────────────────────────────────────────────────────────────── */
 .analytics-modal {
+  /* Win the cascade against .liquid-glass-strong */
+  position: fixed !important;
   display: flex;
   flex-direction: column;
-  inset: 0 !important;             /* override sm:inset-2 utility */
-  border-radius: 0 !important;      /* override sm:rounded-2xl utility */
-  width: 100vw;
-  height: 100vh;
-  max-width: 100vw;
-  max-height: 100vh;
-  /* Respect iOS safe areas so the close button is never under the notch */
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  /* Some browsers expose a more accurate dynamic-viewport unit; use it
+     where available so the modal also covers iOS' shrinking address bar. */
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  z-index: 60 !important;
   padding-top: env(safe-area-inset-top, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 /* Each chart card has a deterministic min height so Chart.js can paint
-   into a finite container on every viewport — prevents the "graphs outside
-   their cards" symptom on mobile (Task 4). */
+   into a finite container on every viewport. */
 .analytics-chart-card {
   height: 240px;
   min-height: 220px;
@@ -616,18 +813,15 @@ body {
 }
 
 /* ============================================================
-   SIDEBAR PANEL — Task 4
+   SIDEBAR PANEL
    ============================================================ */
 .sidebar-panel {
-  /* Rounded corners, overflow hidden so content respects them */
   border-radius: 1rem;
   position: relative;
   z-index: 10;
-  /* Smooth width transition for collapse/expand */
   transition: width 200ms ease-in-out, min-width 200ms ease-in-out;
 }
 
-/* On small screens the sidebar floats as a fixed drawer */
 @media (max-width: 1023px) {
   .sidebar-panel {
     position: fixed;
@@ -640,12 +834,7 @@ body {
 }
 
 /* ============================================================
-   FILTER DROPDOWN — Task 3 Fix
-   The dropdown panel is rendered via a React PORTAL to document.body
-   (see FilterDropdowns.tsx). That escapes the .liquid-glass parent's
-   overflow:hidden clip and prevents the dropdown from expanding the
-   filter bar layout. The CSS below just gives the floating portal
-   panel a dependable z-index and a soft scroll behaviour.
+   FILTER DROPDOWN
    ============================================================ */
 #filter-bar {
   position: relative;

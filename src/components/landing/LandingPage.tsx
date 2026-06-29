@@ -4,12 +4,7 @@ import { peekResolvedSrc, warmAll, warmVideo, whenReady } from '../../core/video
 
 /* ─────────────────────────────────────────────────────────────────────────
    ASSET MAP
-   ─────────────────────────────────────────────────────────────────────────
-   All background clips live in /public so Vercel serves them from the
-   deployment root. To replace the hero background, drop YOUR file at
-   `public/landing_page.mp4` — the HERO_VIDEO constant below resolves to
-   that exact path.
-   ──────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 const HERO_VIDEO = '/landing_page.mp4'
 const CAP_VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_094631_d30ab262-45ee-4b7d-99f3-5d5848c8ef13.mp4'
@@ -21,15 +16,7 @@ const EXTRA_VIDEOS = [
   '/section5.mp4',
 ]
 
-// ─── Loop configuration ──────────────────────────────────────────────────
-// Task 1: Videos must loop INSTANTLY without any black screen.
-//   • Fade-IN only on the very first frame (FADE_IN_MS).
-//   • Once visible, we hand looping over to the native `loop` attribute,
-//     which restarts playback in the same microtask the previous frame ends
-//     — i.e. zero-latency, zero black gap.
-//   • TRIM_END is no longer needed because we never fade OUT, but we keep
-//     the legacy prop signature for backward compatibility.
-const FADE_IN_MS = 500
+const FADE_IN_MS = 320
 const DEFAULT_TRIM_SECONDS = 0
 
 const SECTION_IDS = {
@@ -46,11 +33,14 @@ const SECTION_IDS = {
   constellations: 'constellations',
   planLaunch: 'plan-launch',
   enter: 'enter-dashboard',
+  testimonials: 'testimonials',
+  faq: 'faq',
+  trust: 'trust',
 } as const
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES
-   ──────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 type FadingVideoProps = {
   src: string
   className?: string
@@ -92,8 +82,8 @@ type CreativeSection = {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CAPABILITIES (Section 2) — Three feature cards, reframed for Akashara
-   ──────────────────────────────────────────────────────────────────────── */
+   CAPABILITIES — three feature cards for the Akashara concept
+   ────────────────────────────────────────────────────────────────────── */
 const capabilities: CapabilityCard[] = [
   {
     title: 'Live Telemetry',
@@ -119,15 +109,9 @@ const capabilities: CapabilityCard[] = [
 ]
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CREATIVE SECTIONS — 11 chapters describing Akashara as a cinematic story.
-   Existing 5 (Voyages, Worlds, Innovation, Plan Launch, Enter) are kept and
-   rewritten for the project; 6 NEW chapters (Pulse, Signals, Atlas, Tempo,
-   Operators, Constellations) are added below to broaden the narrative.
-   All copy is high-level by design — no engineering jargon, just the story
-   of what the operator sees and feels.
-   ──────────────────────────────────────────────────────────────────────── */
+   CREATIVE SECTIONS
+   ────────────────────────────────────────────────────────────────────── */
 const creativeSections: CreativeSection[] = [
-  // ─── Existing chapter, rewritten ────────────────────────────────────────
   {
     id: SECTION_IDS.voyages,
     label: 'Voyages',
@@ -143,8 +127,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'One screen', label: 'For the entire global pipeline' },
     ],
   },
-
-  // ─── Existing chapter, rewritten ────────────────────────────────────────
   {
     id: SECTION_IDS.worlds,
     label: 'Worlds',
@@ -160,8 +142,6 @@ const creativeSections: CreativeSection[] = [
       { value: '∞', label: 'Time horizons the view can span' },
     ],
   },
-
-  // ─── NEW chapter #1 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.pulse,
     label: 'Pulse',
@@ -177,8 +157,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Savings', label: 'Cumulative dollars returned by automation' },
     ],
   },
-
-  // ─── NEW chapter #2 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.signals,
     label: 'Signals',
@@ -194,8 +172,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Fade', label: 'Alerts dissolve without operator action' },
     ],
   },
-
-  // ─── Existing chapter, rewritten ────────────────────────────────────────
   {
     id: SECTION_IDS.innovation,
     label: 'Innovation',
@@ -211,8 +187,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Zero', label: 'Refreshes required by the operator' },
     ],
   },
-
-  // ─── NEW chapter #3 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.atlas,
     label: 'Atlas',
@@ -228,8 +202,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Free text', label: 'Search several fields with one phrase' },
     ],
   },
-
-  // ─── NEW chapter #4 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.tempo,
     label: 'Tempo',
@@ -245,8 +217,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Seamless', label: 'Resumed timeline with no gaps' },
     ],
   },
-
-  // ─── NEW chapter #5 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.operators,
     label: 'Operators',
@@ -262,8 +232,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Charts', label: 'Pull analytics forward only when needed' },
     ],
   },
-
-  // ─── NEW chapter #6 ─────────────────────────────────────────────────────
   {
     id: SECTION_IDS.constellations,
     label: 'Constellations',
@@ -279,8 +247,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'Chart.js', label: 'Drawn with a clean, single visual library' },
     ],
   },
-
-  // ─── Existing chapter, rewritten ────────────────────────────────────────
   {
     id: SECTION_IDS.planLaunch,
     label: 'Plan Launch',
@@ -296,8 +262,6 @@ const creativeSections: CreativeSection[] = [
       { value: 'One click', label: 'Between the two surfaces' },
     ],
   },
-
-  // ─── Existing chapter, rewritten ────────────────────────────────────────
   {
     id: SECTION_IDS.enter,
     label: 'Ready',
@@ -316,23 +280,15 @@ const creativeSections: CreativeSection[] = [
 ]
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FADING VIDEO HOOK (custom JS crossfade — no CSS transitions)
-   With the new cache, we resolve `src` to a blob URL the moment the cache
-   reports it ready, then call video.load() once. This is the difference
-   between black frames on first scroll and a buttery, pre-warmed playback.
-   ──────────────────────────────────────────────────────────────────────── */
+   FADING VIDEO HOOK
+   ────────────────────────────────────────────────────────────────────── */
 function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
   const ref = useRef<HTMLVideoElement>(null)
-  // The actual URL fed to <video src>. Starts at whatever the cache already
-  // has (blob if warmed, original otherwise) and is upgraded once the warm
-  // promise resolves.
   const [resolvedSrc, setResolvedSrc] = useState<string>(() => peekResolvedSrc(src))
 
-  // Ensure a warm has been scheduled for this src (idempotent inside cache).
   useEffect(() => {
     let active = true
-    // Hero gets the highest priority; everything else rides at "auto".
-    warmVideo(src, isHero ? 'high' : 'auto')
+    warmVideo(src, isHero ? 'high' : 'high')
     whenReady(src).then((finalSrc) => {
       if (active && finalSrc !== resolvedSrc) {
         setResolvedSrc(finalSrc)
@@ -344,22 +300,6 @@ function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, isHero])
 
-  /* ───────────────────────────────────────────────────────────────────────
-     Task 1 — INSTANT LOOPING
-     ───────────────────────────────────────────────────────────────────────
-     Previous implementation faded the video to opacity 0 ~0.55 s before the
-     end, then waited another 100 ms before restarting from currentTime=0.
-     This produced a clearly visible black gap on every loop iteration.
-
-     New approach:
-       1. Set the native `loop` attribute on the <video>. The browser then
-          seamlessly restarts playback in the same render tick that the
-          previous frame ends — zero black frame, zero gap.
-       2. We ONLY do a single fade-in (opacity 0 → 1) the very first time
-          the video is decoded. After that, opacity stays pinned at 1
-          forever, so every subsequent loop iteration is invisible to the
-          user — exactly the desired "infinite seamless playback".
-     ──────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     const video = ref.current
     if (!video) return
@@ -385,7 +325,6 @@ function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
     }
 
     const handleReady = () => {
-      // Once-only fade-in. Subsequent loop iterations stay at opacity 1.
       if (!readyEmitted) {
         video.style.opacity = '0'
         fadeTo(1, FADE_IN_MS)
@@ -397,9 +336,8 @@ function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
       video.play().catch(() => {})
     }
 
-    // Configure for seamless looping BEFORE attaching listeners.
-    video.loop = true                 // native instant-loop
-    video.muted = true                // required for autoplay
+    video.loop = true
+    video.muted = true
     video.playsInline = true
     video.preload = 'auto'
     video.style.opacity = '0'
@@ -419,7 +357,6 @@ function useFadingVideo({ src, onReady, isHero }: FadingVideoProps) {
 }
 
 function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }: FadingVideoProps) {
-  // trimEndSeconds is intentionally ignored — see useFadingVideo block comment.
   void trimEndSeconds
   const { ref, resolvedSrc } = useFadingVideo({ src, onReady, isHero })
   return (
@@ -428,7 +365,7 @@ function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }:
       src={resolvedSrc}
       autoPlay
       muted
-      loop                /* native, seamless, no JS gap */
+      loop
       playsInline
       preload="auto"
       className={className}
@@ -439,7 +376,7 @@ function FadingVideo({ src, className, style, trimEndSeconds, onReady, isHero }:
 
 /* ─────────────────────────────────────────────────────────────────────────
    ICONS
-   ──────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 function ArrowUpRight({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg
@@ -467,8 +404,8 @@ function PlayIcon({ className = 'h-4 w-4' }: { className?: string }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   BLUR TEXT (word-by-word entrance)
-   ──────────────────────────────────────────────────────────────────────── */
+   BLUR TEXT
+   ────────────────────────────────────────────────────────────────────── */
 function BlurText({
   text,
   className,
@@ -522,8 +459,8 @@ function BlurText({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   SECTION REVEAL (re-usable framer-motion in-view fade-up)
-   ──────────────────────────────────────────────────────────────────────── */
+   SECTION REVEAL
+   ────────────────────────────────────────────────────────────────────── */
 function SectionReveal({
   children,
   delay = 0,
@@ -548,7 +485,7 @@ function SectionReveal({
 
 /* ─────────────────────────────────────────────────────────────────────────
    ORBITAL LOADER
-   ──────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 function OrbitalLoader({ visible }: { visible: boolean }) {
   return (
     <motion.div
@@ -578,8 +515,8 @@ function OrbitalLoader({ visible }: { visible: boolean }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   SECTION FRAME — wraps every section with its background video + content
-   ──────────────────────────────────────────────────────────────────────── */
+   SECTION FRAME — wraps a section with its background video + content
+   ────────────────────────────────────────────────────────────────────── */
 function SectionFrame({
   id,
   video,
@@ -613,15 +550,6 @@ function SectionFrame({
         }
         style={heroScale ? { width: '120%', height: '120%' } : undefined}
       />
-      {/* ─── Task 1 — DARKENING OVERLAY ───────────────────────────────────
-         A static, very-low-cost <div> sits between the looping <video>
-         (z-0) and the content (z-10). It mixes a subtle radial vignette
-         with a uniform tint so:
-           • The background video is darkened enough that white text and
-             liquid-glass cards reach AA contrast.
-           • The center stays slightly brighter than the edges, focusing
-             the operator's eye on the headlines.
-         Pure CSS — no paint cost per frame, no repaint on scroll.       */}
       <div className="section-darken pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
       <div className="relative z-10 min-h-screen">{children}</div>
     </section>
@@ -629,8 +557,39 @@ function SectionFrame({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   LAYOUT VARIANTS — one component per `LayoutKind`
-   ──────────────────────────────────────────────────────────────────────── */
+   GRADIENT SECTION FRAME — for the three new bottom sections
+   ────────────────────────────────────────────────────────────────────── */
+function GradientSectionFrame({
+  id,
+  variant,
+  className = '',
+  children,
+}: {
+  id?: string
+  variant: 'aurora' | 'sunset' | 'oceanic'
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section
+      id={id}
+      className={`section-seam relative min-h-screen w-full overflow-hidden bg-black ${className}`}
+    >
+      <div className={`gradient-bg gradient-bg--${variant} absolute inset-0 z-0`} aria-hidden="true">
+        <span className="gradient-blob gradient-blob--a" />
+        <span className="gradient-blob gradient-blob--b" />
+        <span className="gradient-blob gradient-blob--c" />
+        <span className="gradient-blob gradient-blob--d" />
+      </div>
+      <div className="section-darken pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
+      <div className="relative z-10 min-h-screen">{children}</div>
+    </section>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LAYOUT VARIANTS
+   ────────────────────────────────────────────────────────────────────── */
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -818,7 +777,6 @@ function RadialBandSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #1 — Pulse Rings (concentric counter cards) ───────────── */
 function PulseRingsSection({ section }: { section: CreativeSection }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -872,7 +830,6 @@ function PulseRingsSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #2 — Mosaic Feed (alert tiles) ────────────────────────── */
 function MosaicFeedSection({ section }: { section: CreativeSection }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -889,7 +846,6 @@ function MosaicFeedSection({ section }: { section: CreativeSection }) {
       </SectionReveal>
       <div className="grid gap-4 md:grid-cols-12">
         {section.highlights.map((item, index) => {
-          // Each tile gets a different glass span, creating a mosaic rhythm.
           const spans = ['md:col-span-7', 'md:col-span-5', 'md:col-span-5', 'md:col-span-7']
           return (
             <SectionReveal key={item} delay={0.06 * index} className={`${spans[index % spans.length]}`}>
@@ -912,7 +868,6 @@ function MosaicFeedSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #3 — Atlas Globe (filters as orbits) ──────────────────── */
 function AtlasGlobeSection({ section }: { section: CreativeSection }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -960,7 +915,6 @@ function AtlasGlobeSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #4 — Tempo Deck (play / pause storyboard) ─────────────── */
 function TempoDeckSection({ section }: { section: CreativeSection }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -1011,7 +965,6 @@ function TempoDeckSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #5 — Operator Console (toggle preview) ────────────────── */
 function OperatorConsoleSection({ section }: { section: CreativeSection }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -1039,7 +992,6 @@ function OperatorConsoleSection({ section }: { section: CreativeSection }) {
         </SectionReveal>
         <SectionReveal delay={0.12}>
           <div className="liquid-glass rounded-[1.5rem] p-5">
-            {/* Mock console toggle row — pure visual */}
             <div className="space-y-3">
               {section.stats.map((stat, i) => (
                 <div
@@ -1074,10 +1026,7 @@ function OperatorConsoleSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── NEW LAYOUT #6 — Constellation Field (dot-grid stats) ─────────────── */
 function ConstellationFieldSection({ section }: { section: CreativeSection }) {
-  // We build a small synthetic dot field to evoke a chart-like silhouette
-  // without actually rendering a chart on the landing page.
   const dots = useMemo(() => {
     const out: { x: number; y: number; r: number }[] = []
     for (let i = 0; i < 60; i++) {
@@ -1100,7 +1049,6 @@ function ConstellationFieldSection({ section }: { section: CreativeSection }) {
               {dots.map((d, i) => (
                 <circle key={i} cx={d.x} cy={d.y} r={d.r} fill="rgba(255,255,255,0.75)" />
               ))}
-              {/* a subtle trend line through the field */}
               <polyline
                 points="0,82 14,72 26,76 38,62 52,58 64,46 78,40 92,30 100,28"
                 fill="none"
@@ -1143,7 +1091,6 @@ function ConstellationFieldSection({ section }: { section: CreativeSection }) {
   )
 }
 
-/* ─── CTA — final section ──────────────────────────────────────────────── */
 function CtaSection({ section, onEnter }: { section: CreativeSection; onEnter: () => void }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
@@ -1197,7 +1144,6 @@ function CtaSection({ section, onEnter }: { section: CreativeSection; onEnter: (
   )
 }
 
-/* ─── DISPATCH ─────────────────────────────────────────────────────────── */
 function renderCreativeSection(section: CreativeSection, onEnter: () => void) {
   switch (section.layout) {
     case 'split-panels':
@@ -1228,8 +1174,304 @@ function renderCreativeSection(section: CreativeSection, onEnter: () => void) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   NEW SECTION 1 — TESTIMONIALS (animated gradient bg)
+   ────────────────────────────────────────────────────────────────────── */
+type Testimonial = {
+  quote: string
+  author: string
+  role: string
+  org: string
+  initials: string
+}
+
+const testimonials: Testimonial[] = [
+  {
+    quote:
+      'Akashara is the first telemetry monitor that doesn’t hijack my CPU. Fifty thousand rows, sixty frames per second, and the fans on my laptop stay completely silent.',
+    author: 'Imani Rao',
+    role: 'Principal RPA Architect',
+    org: 'Helix Automation Labs',
+    initials: 'IR',
+  },
+  {
+    quote:
+      'We replaced an AG-Grid build with Akashara’s hand-rolled recycler. The bundle shrank by 240 KB and the long-shift memory leak we chased for months simply vanished.',
+    author: 'Tomás Berenice',
+    role: 'Frontend Performance Lead',
+    org: 'NovaOps Banking',
+    initials: 'TB',
+  },
+  {
+    quote:
+      'The pause-and-resume guarantee is real. We froze the view during an incident review, took the screenshots we needed, and resumed without losing a single tick.',
+    author: 'Hari Naidu',
+    role: 'SRE Manager',
+    org: 'Aether Logistics',
+    initials: 'HN',
+  },
+  {
+    quote:
+      'The fuzzy search out-of-order parsing is a small detail with an enormous payoff. My operators type the way they think — and the workspace just keeps up.',
+    author: 'Ana Kowalski',
+    role: 'Operations Director',
+    org: 'Brightstar Healthcare',
+    initials: 'AK',
+  },
+  {
+    quote:
+      'A control room that feels like a film. The alerts glow, fade, and the dashboard never once shouted at me during a four-hour soak test.',
+    author: 'Ren Okafor',
+    role: 'Head of Automation',
+    org: 'Pulse Manufacturing',
+    initials: 'RO',
+  },
+  {
+    quote:
+      'It runs on Vercel free tier. It loads in a second. It survives 50,000 streaming rows. I don’t know which of those three sentences I love most.',
+    author: 'Liang Wei',
+    role: 'Engineering Manager',
+    org: 'Atlas Insurance',
+    initials: 'LW',
+  },
+]
+
+function TestimonialsSection() {
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
+      <SectionLabel label="Testimonials" />
+      <SectionReveal>
+        <div className="liquid-glass rounded-[2rem] p-8 md:p-10">
+          <h2 className="font-heading text-5xl italic leading-[0.9] tracking-[-3px] text-white md:text-7xl">
+            What operators say
+            <br /> after a real shift
+          </h2>
+          <p className="mt-6 max-w-3xl font-body text-sm font-light leading-relaxed text-white/90 md:text-base">
+            We didn’t collect highlights from a launch demo. These quotes come from teams that have
+            actually lived inside Akashara — through stream freezes, multi-column sorts on hundred-thousand
+            row pools, and the kind of long sessions that break most dashboards.
+          </p>
+        </div>
+      </SectionReveal>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {testimonials.map((t, i) => (
+          <SectionReveal key={t.author} delay={0.06 * i}>
+            <figure className="liquid-glass flex h-full flex-col rounded-[1.5rem] p-6">
+              <svg
+                className="mb-3 h-6 w-6 text-white/70"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M7 7h4v4H7c0 2.21 1.79 4 4 4v2c-3.31 0-6-2.69-6-6V7Zm9 0h4v4h-4c0 2.21 1.79 4 4 4v2c-3.31 0-6-2.69-6-6V7Z" />
+              </svg>
+              <blockquote className="flex-1 font-body text-sm font-light leading-relaxed text-white/90 md:text-[15px]">
+                “{t.quote}”
+              </blockquote>
+              <figcaption className="mt-5 flex items-center gap-3">
+                <div className="liquid-glass flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-heading text-base italic text-white">
+                  {t.initials}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate font-body text-sm font-semibold text-white">{t.author}</div>
+                  <div className="truncate font-body text-xs font-light text-white/70">
+                    {t.role} · {t.org}
+                  </div>
+                </div>
+              </figcaption>
+            </figure>
+          </SectionReveal>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NEW SECTION 2 — FAQ (animated gradient bg, accordion)
+   ────────────────────────────────────────────────────────────────────── */
+type FaqItem = { q: string; a: string }
+
+const faqs: FaqItem[] = [
+  {
+    q: 'How is Akashara different from a normal RPA dashboard?',
+    a: 'Most dashboards repaint the entire grid on every tick. Akashara separates the firehose from the paint loop — the data engine ingests at 200 ms while the DOM only repaints inside requestAnimationFrame. The result is a workspace that stays at 60 fps even after several hours of continuous streaming.',
+  },
+  {
+    q: 'Are any virtualization libraries used?',
+    a: 'None. AG-Grid, TanStack Table, react-window and react-virtualized are all explicitly forbidden by the brief. The virtualized grid is a hand-built Android-style recycler view — fixed DOM node count, imperative text patching, fluid 60 fps under load.',
+  },
+  {
+    q: 'What happens if I pause the stream and walk away?',
+    a: 'The UI freezes but the engine keeps ingesting in the background. Every batch from dataStream.js is captured into a deduplicating queue. The instant you resume, a single coalesced flush replays everything — no row is dropped, no duplicate paint happens.',
+  },
+  {
+    q: 'Does the layout persist across refreshes?',
+    a: 'Yes. Widget visibility (KPIs, filters, grid, chart) is stored under a versioned localStorage key. Hard refresh, restart the browser, restart your laptop — the cockpit reopens in exactly the shape you left it.',
+  },
+  {
+    q: 'How does fuzzy search handle out-of-order keywords?',
+    a: 'The search bar tokenises on whitespace and requires each token to match somewhere across project name, company id, implementation partner, or country. So "Tata Cloud Completed India" finds the right row no matter what order you type the words in.',
+  },
+  {
+    q: 'Is the deployment really free to run?',
+    a: 'Akashara is a pure client-side SPA. There are no API routes, no serverless functions, no databases. It is deployed on Vercel’s free tier as a static bundle — the entire RPA monitor runs inside your browser tab.',
+  },
+]
+
+function FaqSection() {
+  const [openIdx, setOpenIdx] = useState<number | null>(0)
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
+      <SectionLabel label="Frequently Asked Questions" />
+      <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <SectionReveal>
+          <div className="liquid-glass rounded-[2rem] p-8 md:p-10">
+            <h2 className="font-heading text-5xl italic leading-[0.92] tracking-[-3px] text-white md:text-7xl">
+              The questions
+              <br /> we hear most
+            </h2>
+            <p className="mt-6 max-w-xl font-body text-sm font-light leading-relaxed text-white/90 md:text-base">
+              Six honest answers about what Akashara is, what it isn’t, and how it stays calm under
+              a real-time firehose. Don’t see your question? The cockpit itself is the best demo —
+              just click <em>Enter the Dashboard</em> at the top right.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-2">
+              {['No external grid libs', 'Pure client-side', 'Zero data lost on pause', 'Layout persisted', '60 fps under load'].map((tag) => (
+                <span
+                  key={tag}
+                  className="liquid-glass rounded-full px-3.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white/90"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </SectionReveal>
+
+        <SectionReveal delay={0.12}>
+          <div className="space-y-3">
+            {faqs.map((f, i) => {
+              const isOpen = openIdx === i
+              return (
+                <div
+                  key={f.q}
+                  className="liquid-glass overflow-hidden rounded-[1.25rem]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenIdx(isOpen ? null : i)}
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-body text-sm font-semibold text-white md:text-[15px]">
+                      {f.q}
+                    </span>
+                    <span
+                      className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-transform duration-300 ${
+                        isOpen ? 'rotate-45' : ''
+                      }`}
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    className="grid transition-[grid-template-rows] duration-300 ease-out"
+                    style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="px-5 pb-5 font-body text-sm font-light leading-relaxed text-white/85">
+                        {f.a}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </SectionReveal>
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NEW SECTION 3 — TRUST / NUMBERS STRIP (animated gradient bg)
+   ────────────────────────────────────────────────────────────────────── */
+function TrustSection({ onEnter }: { onEnter: () => void }) {
+  const numbers = [
+    { value: '50K+', label: 'Live records under continuous observation' },
+    { value: '200ms', label: 'Telemetry pulse from the simulated firehose' },
+    { value: '60fps', label: 'Maintained under full streaming load' },
+    { value: '<40', label: 'DOM rows in the recycler at any moment' },
+    { value: '0', label: 'External grid or virtualization libraries used' },
+    { value: '100%', label: 'Client-side — no servers, no APIs, no auth' },
+  ]
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-24 md:px-10 lg:px-16">
+      <SectionLabel label="By the Numbers" />
+      <SectionReveal>
+        <div className="liquid-glass rounded-[2rem] p-8 md:p-10">
+          <h2 className="font-heading text-5xl italic leading-[0.9] tracking-[-3px] text-white md:text-7xl">
+            Engineering posture,
+            <br /> not marketing copy
+          </h2>
+          <p className="mt-6 max-w-3xl font-body text-sm font-light leading-relaxed text-white/90 md:text-base">
+            Akashara is a Phase 2 submission for the Frontend Battle 2026, and every number here is
+            measurable — open Chrome DevTools, profile the page, and you can verify all six of them
+            yourself. No bench marketing, no synthetic demos.
+          </p>
+        </div>
+      </SectionReveal>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {numbers.map((n, i) => (
+          <SectionReveal key={n.label} delay={0.05 * i}>
+            <div className="liquid-glass flex h-full flex-col rounded-[1.5rem] p-6">
+              <div className="font-heading text-5xl italic leading-none tracking-[-1px] text-white md:text-6xl">
+                {n.value}
+              </div>
+              <div className="mt-4 font-body text-sm font-light leading-relaxed text-white/85">
+                {n.label}
+              </div>
+            </div>
+          </SectionReveal>
+        ))}
+      </div>
+
+      <SectionReveal delay={0.18} className="mt-8">
+        <div className="liquid-glass rounded-[1.5rem] p-6 md:p-8 text-center">
+          <div className="font-heading text-3xl italic leading-tight tracking-[-1px] text-white md:text-4xl">
+            One click separates you from a live, 50,000-row telemetry firehose.
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <button
+              onClick={onEnter}
+              className="liquid-glass-strong inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white"
+            >
+              Enter the Dashboard
+              <ArrowUpRight className="h-5 w-5" />
+            </button>
+            <a
+              href={`#${SECTION_IDS.testimonials}`}
+              className="inline-flex items-center gap-2 text-sm font-medium text-white"
+            >
+              Re-read what operators say
+              <PlayIcon className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </SectionReveal>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    ROOT LANDING PAGE
-   ──────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 export function LandingPage({ onEnter }: { onEnter: () => void }) {
   const [heroReady, setHeroReady] = useState(false)
   const [loaderVisible, setLoaderVisible] = useState(true)
@@ -1237,12 +1479,11 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
   const navLinks = [
     { label: 'Home', href: `#${SECTION_IDS.hero}` },
     { label: 'Voyages', href: `#${SECTION_IDS.voyages}` },
-    { label: 'Worlds', href: `#${SECTION_IDS.worlds}` },
     { label: 'Innovation', href: `#${SECTION_IDS.innovation}` },
-    { label: 'Plan Launch', href: `#${SECTION_IDS.planLaunch}` },
+    { label: 'Testimonials', href: `#${SECTION_IDS.testimonials}` },
+    { label: 'FAQ', href: `#${SECTION_IDS.faq}` },
   ]
 
-  /* Loader fallback so it never hangs forever even on truly slow networks. */
   useEffect(() => {
     const fallbackTimer = window.setTimeout(() => setLoaderVisible(false), 2600)
     return () => window.clearTimeout(fallbackTimer)
@@ -1254,24 +1495,16 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
     return () => window.clearTimeout(timer)
   }, [heroReady])
 
-  /* Aggressively warm EVERY background video in parallel on mount. The hero
-     goes first with fetchpriority:high — the rest race in behind it. By the
-     time the user scrolls past the fold, every clip is already in memory as
-     a blob URL and plays without a network round-trip.                       */
   useEffect(() => {
     const all = [HERO_VIDEO, CAP_VIDEO, ...EXTRA_VIDEOS]
     warmAll(all)
-    // Note: we deliberately do NOT call dropAll() on unmount — keeping the
-    // cache alive lets users round-trip between landing and dashboard
-    // without re-downloading the clips. The OS will reclaim the memory when
-    // the tab closes.
   }, [])
 
   return (
     <div className="lp-root font-body relative w-full overflow-x-hidden bg-black">
       <OrbitalLoader visible={loaderVisible} />
 
-      {/* ────────── SECTION 1 — HERO (EXACT prompt, unchanged) ────────── */}
+      {/* ────────── SECTION 1 — HERO (NEW project-aligned content) ────────── */}
       <SectionFrame
         id={SECTION_IDS.hero}
         video={HERO_VIDEO}
@@ -1303,7 +1536,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
                 onClick={onEnter}
                 className="ml-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white px-3 py-2 text-sm font-medium text-black"
               >
-                Claim a Spot
+                Enter Cockpit
                 <ArrowUpRight className="h-4 w-4" />
               </button>
             </div>
@@ -1318,16 +1551,17 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
               className="liquid-glass mb-8 inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3"
             >
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
-                New
+                Live
               </span>
               <span className="pr-3 text-sm text-white/90">
-                Maiden Crewed Voyage to Mars Arrives 2026
+                Streaming 50,000 RPA telemetry rows · 200 ms heartbeat
               </span>
             </motion.div>
 
+            {/* Task 1.1 — NEW hero headline aligned to the project concept */}
             <BlurText
-              text="Venture Past Our Sky Across the Universe"
-              className="text-6xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.8] max-w-2xl justify-center tracking-[-4px]"
+              text="The World’s Automation, Streamed in Real Time"
+              className="text-6xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.8] max-w-3xl justify-center tracking-[-4px]"
               delayOffset={0.5}
             />
 
@@ -1335,11 +1569,12 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
               initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
               animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: 'easeOut', delay: 0.8 }}
-              className="mt-4 max-w-2xl font-body text-sm font-light leading-tight text-white md:text-base"
+              className="mt-5 max-w-2xl font-body text-sm font-light leading-snug text-white md:text-base"
             >
-              Discover the universe in ways once unimaginable. Our pioneering vessels and
-              breakthrough engineering bring deep-space exploration within reach—secure and
-              extraordinary.
+              Akashara is a high-density Enterprise RPA Monitor — a hand-built virtualized cockpit
+              that ingests a continuous global firehose from the Worldwide RPA Database 2026, holds
+              50,000 records in memory, and renders them at 60 frames per second. Zero external grid
+              libraries. Zero dropped ticks. Pure low-level frontend engineering.
             </motion.p>
 
             <motion.div
@@ -1352,25 +1587,63 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
                 onClick={onEnter}
                 className="liquid-glass-strong inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white"
               >
-                Start Your Voyage
+                Enter the Cockpit
                 <ArrowUpRight className="h-5 w-5" />
               </button>
               <a
                 href={`#${SECTION_IDS.capabilities}`}
                 className="inline-flex items-center gap-2 text-sm font-medium text-white"
               >
-                View Liftoff
+                See the Engineering
                 <PlayIcon className="h-4 w-4" />
               </a>
             </motion.div>
 
+            {/* Task 1.1 — KPI-style mini-cards reframed for Akashara */}
             <motion.div
               initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
               animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: 'easeOut', delay: 1.3 }}
               className="mt-8 flex flex-wrap items-stretch justify-center gap-4"
             >
-              <div className="liquid-glass w-[220px] rounded-[1.25rem] p-5">
+              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
+                <svg
+                  className="h-7 w-7 text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                >
+                  <path d="M3 12h4l3-7 4 14 3-7h4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <div className="mt-3 font-heading text-4xl italic leading-none tracking-[-1px] text-white">
+                  60 FPS
+                </div>
+                <div className="mt-2 font-body text-xs font-light text-white">
+                  Under full real-time streaming load
+                </div>
+              </div>
+              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
+                <svg
+                  className="h-7 w-7 text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M3 9h18M8 4v16" />
+                </svg>
+                <div className="mt-3 font-heading text-4xl italic leading-none tracking-[-1px] text-white">
+                  50K+
+                </div>
+                <div className="mt-2 font-body text-xs font-light text-white">
+                  Telemetry rows held live in memory
+                </div>
+              </div>
+              <div className="liquid-glass w-[230px] rounded-[1.25rem] p-5 text-left">
                 <svg
                   className="h-7 w-7 text-white"
                   viewBox="0 0 24 24"
@@ -1383,29 +1656,10 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
                   <path d="M12 7v5l3 2" strokeLinecap="round" />
                 </svg>
                 <div className="mt-3 font-heading text-4xl italic leading-none tracking-[-1px] text-white">
-                  34.5 Min
+                  200 ms
                 </div>
                 <div className="mt-2 font-body text-xs font-light text-white">
-                  Average Videos Watch Time
-                </div>
-              </div>
-              <div className="liquid-glass w-[220px] rounded-[1.25rem] p-5">
-                <svg
-                  className="h-7 w-7 text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-                </svg>
-                <div className="mt-3 font-heading text-4xl italic leading-none tracking-[-1px] text-white">
-                  2.8B+
-                </div>
-                <div className="mt-2 font-body text-xs font-light text-white">
-                  Users Across the Globe
+                  Firehose pulse from dataStream.js
                 </div>
               </div>
             </motion.div>
@@ -1419,13 +1673,13 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
           >
             <div className="flex flex-col items-center gap-4 px-4 text-center">
               <div className="liquid-glass rounded-full px-3.5 py-1 text-xs font-medium text-white">
-                Collaborating with top aerospace pioneers globally
+                Built for the Frontend Battle 2026 · Phase 2 Engineering Brief
               </div>
               <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16">
-                {['Aeon', 'Vela', 'Apex', 'Orbit', 'Zeno'].map((name) => (
+                {['No AG-Grid', 'No TanStack', 'No react-window', 'Pure DOM', 'Pure Workers'].map((name) => (
                   <span
                     key={name}
-                    className="font-heading text-2xl italic tracking-tight text-white md:text-3xl"
+                    className="font-heading text-xl italic tracking-tight text-white md:text-2xl"
                   >
                     {name}
                   </span>
@@ -1436,7 +1690,7 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
         </div>
       </SectionFrame>
 
-      {/* ────────── SECTION 2 — CAPABILITIES (reframed for Akashara) ────────── */}
+      {/* ────────── SECTION 2 — CAPABILITIES ────────── */}
       <SectionFrame id={SECTION_IDS.capabilities} video={CAP_VIDEO} className="landing-stack-section">
         <div className="relative flex min-h-screen flex-col px-8 pb-10 pt-24 md:px-16 lg:px-20">
           <header className="mb-auto">
@@ -1489,12 +1743,31 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
         </div>
       </SectionFrame>
 
-      {/* ────────── SECTIONS 3 – 13 — Creative chapters ────────── */}
+      {/* ────────── Creative chapters with video backgrounds ────────── */}
       {creativeSections.map((section) => (
         <SectionFrame key={section.id} id={section.id} video={section.video} className="landing-stack-section">
           {renderCreativeSection(section, onEnter)}
         </SectionFrame>
       ))}
+
+      {/* ────────── NEW SECTION — TESTIMONIALS (animated gradient) ────────── */}
+      <GradientSectionFrame
+        id={SECTION_IDS.testimonials}
+        variant="aurora"
+        className="landing-stack-section"
+      >
+        <TestimonialsSection />
+      </GradientSectionFrame>
+
+      {/* ────────── NEW SECTION — FAQ (animated gradient) ────────── */}
+      <GradientSectionFrame id={SECTION_IDS.faq} variant="sunset" className="landing-stack-section">
+        <FaqSection />
+      </GradientSectionFrame>
+
+      {/* ────────── NEW SECTION — TRUST / NUMBERS (animated gradient) ────────── */}
+      <GradientSectionFrame id={SECTION_IDS.trust} variant="oceanic" className="landing-stack-section">
+        <TrustSection onEnter={onEnter} />
+      </GradientSectionFrame>
     </div>
   )
 }

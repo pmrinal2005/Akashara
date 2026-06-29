@@ -434,13 +434,22 @@ export function AnalyticsView() {
         aria-hidden="true"
       />
 
-      {/* Modal — true full-screen with safe inset so it never clips on mobile */}
+      {/*
+        Modal — full-viewport overlay (Task 2 fix).
+        The previous version applied `liquid-glass-strong` directly to the
+        positioning element, but that class declares `position: relative`,
+        which won the cascade over Tailwind's `fixed inset-0` and pinned
+        the dialog to the bottom half of the screen like a sheet.
+        Now we keep the outer dialog as a plain `fixed inset-0` element
+        (with !important rules in globals.css → `.analytics-modal` to be
+        bullet-proof) and apply the glass treatment to an INNER wrapper
+        which is naturally positioned in normal flow.
+      */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Analytics view — frozen-snapshot Chart.js dashboard"
-        className="analytics-modal liquid-glass-strong fixed inset-0 z-50 flex flex-col"
-        style={{ isolation: 'isolate' }}
+        className="analytics-modal fixed inset-0 z-50 flex flex-col bg-[rgba(6,10,22,0.78)] backdrop-blur-2xl"
       >
         {/* ── Header ────────────────────────────────────────────────────── */}
         <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">

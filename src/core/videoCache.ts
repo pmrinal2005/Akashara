@@ -3,29 +3,25 @@
  * ─────────────────────────────────────────────────────────────────────────
  * Aggressive, parallel video pre-warmer for the cinematic landing page.
  *
- * WHY:
- *   The landing page stitches 7 background MP4s (~5 MB each). When each
- *   <video> tag mounts and only then starts fetching its source, the user
- *   sees black frames every time they scroll into a new section. The original
- *   build relied on `preload="metadata"`, which is not enough to begin
- *   playback instantly.
- *
- * HOW:
- *   At app boot, we kick off `fetch()` for every clip in parallel. Each
- *   response is read fully and stored as an in-memory Blob, then exposed via
- *   a `URL.createObjectURL(blob)`. Once a blob URL is ready, subsequent
- *   <video> elements that point at the same logical src receive an instant
- *   handoff — no further network round-trips, no chunked range requests.
- *
- *   Hero video is fetched with the highest priority (it sits above the fold);
- *   the rest are warmed up immediately after, but they do not block the
- *   landing shell from painting.
- *
- *   Same-origin assets are downloaded with `fetch()`. If a source is
- *   cross-origin and CORS blocks the body read, we gracefully fall back to
- *   the raw URL — the original <video> tag will still play, just without
- *   the instant-blob handoff.
+ * TASK 1 (instant video load):
+ *   - index.html now starts a boot-time fetch loop for every clip BEFORE
+ *     React mounts.  Each completed download is exposed via the global
+ *     `window.__akasharaVideoBlobs` map as { src → blob URL }.
+ *   - This module checks that map first and adopts the pre-baked blob URL
+ *     synchronously, so the very first paint of every <video> already
+ *     points at a same-origin blob URL — zero further network requests,
+ *     zero black frames, even when the user scrolls fast.
+ *   - If the boot warm hasn't completed yet for a particular src, we
+ *     fall back to the original fetch-and-blob pipeline (which is still
+ *     dramatically faster than letting the browser load the <video> on
+ *     mount).
  */
+
+declare global {
+  interface Window {
+    __akasharaVideoBlobs?: Record<string, string>
+  }
+}
 
 type CacheEntry = {
   /** The original src the caller asked for. */
@@ -52,6 +48,17 @@ function isLikelyCrossOrigin(src: string): boolean {
 }
 
 /**
+ * Look up an already-materialised blob URL produced by the boot script
+ * in index.html.  Returns undefined when not yet ready.
+ */
+function readBootBlob(src: string): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  const map = window.__akasharaVideoBlobs
+  if (map && typeof map[src] === 'string') return map[src]
+  return undefined
+}
+
+/**
  * Begin warming a single video. Idempotent: repeated calls for the same src
  * return the same Promise.
  */
@@ -59,28 +66,43 @@ export function warmVideo(src: string, priority: 'high' | 'auto' = 'auto'): Prom
   const existing = cache.get(src)
   if (existing) return existing.ready
 
+  // ── Fast path: the boot script in index.html already produced a blob URL
+  //    for this exact src.  Adopt it synchronously so the first paint uses
+  //    a same-origin blob with zero latency.
+  const bootBlob = readBootBlob(src)
+
   const fallbackEntry: CacheEntry = {
     originalSrc: src,
-    resolvedSrc: src,
-    isBlob: false,
-    // Will be replaced below
-    ready: Promise.resolve(src),
+    resolvedSrc: bootBlob ?? src,
+    isBlob: Boolean(bootBlob),
+    ready: bootBlob ? Promise.resolve(bootBlob) : Promise.resolve(src),
+  }
+
+  if (bootBlob) {
+    cache.set(src, fallbackEntry)
+    return fallbackEntry.ready
   }
 
   const readyPromise = (async () => {
+    // Give the boot fetch a brief chance to finish — often it does between
+    // mount and effect-run.
+    const lateBoot = readBootBlob(src)
+    if (lateBoot) {
+      const entry = cache.get(src)
+      if (entry) {
+        entry.resolvedSrc = lateBoot
+        entry.isBlob = true
+      }
+      return lateBoot
+    }
+
     try {
-      // `fetchpriority` is a Chromium-supported hint; supplying it via an
-      // `as any` is benign elsewhere.
       const init: RequestInit & { priority?: 'high' | 'auto' | 'low' } = {
         method: 'GET',
         credentials: 'omit',
         cache: 'force-cache',
         priority,
       }
-
-      // For cross-origin assets we still TRY fetch() — if the server sends
-      // permissive CORS headers (e.g. CloudFront), great. If not, we catch
-      // below and fall back to the raw URL.
       if (isLikelyCrossOrigin(src)) {
         init.mode = 'cors'
       }
@@ -91,7 +113,6 @@ export function warmVideo(src: string, priority: 'high' | 'auto' = 'auto'): Prom
       const blob = await response.blob()
       const blobUrl = URL.createObjectURL(blob)
 
-      // Patch the entry in place (callers may already hold the reference).
       const entry = cache.get(src)
       if (entry) {
         entry.resolvedSrc = blobUrl
@@ -99,9 +120,6 @@ export function warmVideo(src: string, priority: 'high' | 'auto' = 'auto'): Prom
       }
       return blobUrl
     } catch {
-      // CORS or network failure — gracefully fall back to the raw URL. The
-      // <video> will simply load from the network on demand, exactly as it
-      // did before the cache existed.
       return src
     }
   })()
@@ -112,47 +130,46 @@ export function warmVideo(src: string, priority: 'high' | 'auto' = 'auto'): Prom
 }
 
 /**
- * Kick off parallel warming for a list of clips. The first entry is treated
+ * Kick off parallel warming for a list of clips.  The first entry is treated
  * as the above-the-fold hero and gets `fetchpriority: high`; the rest get
- * `auto`. Returns the hero's ready-promise so callers can gate their loader
+ * `auto`.  Returns the hero's ready-promise so callers can gate their loader
  * exclusively on the hero (other clips can finish later, in the background).
  */
 export function warmAll(sources: string[]): Promise<string> {
   if (sources.length === 0) return Promise.resolve('')
   const [hero, ...rest] = sources
   const heroReady = warmVideo(hero, 'high')
-  // Fire-and-forget the rest in parallel — do not await.
   rest.forEach((src) => {
-    warmVideo(src, 'auto')
+    warmVideo(src, 'high')
   })
   return heroReady
 }
 
 /**
  * Synchronously read the current resolved src for a given input (blob URL if
- * ready, otherwise the original src). Useful for the very first paint when we
- * don't want to suspend on a Promise.
+ * ready, otherwise the original src).  Now ALSO honours the boot-time blob
+ * map so the very first render of a freshly mounted <video> can already
+ * point at a same-origin blob URL.
  */
 export function peekResolvedSrc(src: string): string {
   const entry = cache.get(src)
-  return entry?.resolvedSrc ?? src
+  if (entry?.isBlob) return entry.resolvedSrc
+  const bootBlob = readBootBlob(src)
+  return bootBlob ?? entry?.resolvedSrc ?? src
 }
 
 /**
- * Subscribe to the ready event for a particular src. Resolves to the final
- * resolvedSrc (blob or fallback). Mirrors warmVideo but does not initiate the
- * warm if it hasn't started — useful for components that simply want to know
- * when a previously kicked-off warm has completed.
+ * Subscribe to the ready event for a particular src.  Resolves to the final
+ * resolvedSrc (blob or fallback).
  */
 export function whenReady(src: string): Promise<string> {
   const entry = cache.get(src)
   if (entry) return entry.ready
-  // No warm was ever requested; start one now so the consumer doesn't stall.
   return warmVideo(src, 'auto')
 }
 
 /**
- * Release all blob URLs. Called by the landing page on unmount as a courtesy
+ * Release all blob URLs.  Called by the landing page on unmount as a courtesy
  * — modern browsers handle the GC automatically, but it keeps DevTools clean.
  */
 export function dropAll(): void {
