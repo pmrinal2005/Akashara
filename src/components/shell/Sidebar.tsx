@@ -544,25 +544,59 @@ export function Sidebar() {
   const { state, toggle, setTab } = useSidebar()
   const { open, tab } = state
 
+  /* Task 3 — lock the body scroll while the mobile sidebar is OPEN
+     (so the backdrop swipe doesn't double-scroll the page) and —
+     critically — RELEASE the lock the moment the sidebar closes.
+     The old build never wrote the second branch, so any residual
+     `overflow: hidden` from a previous open state could keep the
+     dashboard frozen and unscrollable on phones even after the
+     panel itself had slid away. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const isMobile = window.matchMedia('(max-width: 1023px)').matches
+    if (!isMobile) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   return (
     <>
-      {/* Mobile backdrop when open on small screens */}
+      {/* Mobile backdrop — ONLY mounted when the sidebar is open.
+          Task 3: the conditional render guarantees that once `open`
+          flips to false the element is fully gone from the DOM, so
+          nothing can intercept clicks or blur the dashboard. */}
       {open && (
         <div
-          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+          className="sidebar-backdrop fixed inset-0 z-20 bg-black/40 lg:hidden"
           onClick={() => sidebarStore.close()}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar panel */}
+      {/* Sidebar panel.
+          Task 3 fix — we now toggle a `sidebar-panel--closed-mobile`
+          modifier whenever the sidebar is collapsed. On the mobile
+          breakpoint (≤ 1023 px) the panel is `position: fixed` and
+          the previous CSS forced `width: 100% !important`, which
+          meant that even when the user tapped the arrow to collapse
+          the panel, the panel itself stayed glued over the dashboard,
+          blurred it via the `liquid-glass` backdrop-filter, and
+          intercepted every pointer event. The new modifier slides the
+          entire fixed panel off-screen (`translateX(-100%)`) and
+          disables its pointer-events, so the dashboard underneath
+          becomes visible, interactive and scrollable again the instant
+          the panel collapses. */}
       <aside
         aria-label="Operator sidebar"
+        aria-hidden={!open}
         className={
-          'sidebar-panel liquid-glass flex flex-shrink-0 flex-col transition-[width] duration-200 ease-in-out ' +
+          'sidebar-panel liquid-glass flex flex-shrink-0 flex-col transition-[width,transform,opacity] duration-200 ease-in-out ' +
           (open
-            ? 'w-[260px] min-w-[260px]'
-            : 'w-[44px] min-w-[44px]')
+            ? 'w-[260px] min-w-[260px] sidebar-panel--open-mobile'
+            : 'w-[44px] min-w-[44px] sidebar-panel--closed-mobile')
         }
         style={{ overflow: 'hidden' }}
       >

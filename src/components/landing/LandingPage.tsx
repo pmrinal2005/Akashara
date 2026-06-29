@@ -8,8 +8,14 @@ import { CloseIcon, MenuIcon, PauseIcon, PulseIcon, QuoteIcon } from '../common/
    ASSET MAP
    ────────────────────────────────────────────────────────────────────── */
 const HERO_VIDEO = '/landing_page.mp4'
-const CAP_VIDEO =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_094631_d30ab262-45ee-4b7d-99f3-5d5848c8ef13.mp4'
+/* Task 1 — Section-2 (// Capabilities) background video.
+   Was previously a remote CloudFront clip; now uses the bundled
+   /section3.mp4 asset and is rendered horizontally flipped
+   (mirrored) via the `mirror` prop on <SectionFrame>. The infinite
+   silent loop behaviour (autoPlay + muted + loop + playsInline)
+   continues to come straight from <FadingVideo>, so playback never
+   stops between the start and end of the mirrored frame. */
+const CAP_VIDEO = '/section3.mp4'
 const EXTRA_VIDEOS = [
   '/section1.mp4',
   '/section2.mp4',
@@ -165,7 +171,13 @@ const creativeSections: CreativeSection[] = [
     title: 'A heartbeat above the storm of data',
     subtitle:
       'Three glowing counters sit at the very top of the workspace — rows seen, robots deployed, dollars saved — quietly climbing with every breath of the stream. Operators feel the scale of the operation before they read a single row.',
-    video: EXTRA_VIDEOS[2],
+    /* Task 1.1 — Section-5 (// Pulse) background video is now the
+       NORMAL (un-mirrored) section2.mp4 playing on an infinite
+       silent loop. The omission of `mirrorVideo` here is
+       intentional: the default for `mirrorVideo` is undefined →
+       falsy, so <SectionFrame> renders the <FadingVideo> without
+       any horizontal flip transform. */
+    video: '/section2.mp4',
     layout: 'pulse-rings',
     highlights: ['Three living counters', 'Tabular precision', 'No flicker', 'Always at the top'],
     stats: [
@@ -1820,7 +1832,18 @@ export function LandingPage({ onEnter }: { onEnter: () => void }) {
       </SectionFrame>
 
       {/* ────────── SECTION 2 — CAPABILITIES ────────── */}
-      <SectionFrame id={SECTION_IDS.capabilities} video={CAP_VIDEO} className="landing-stack-section">
+      {/* Task 1 — the Capabilities section now plays section3.mp4 as
+          its background, horizontally mirrored, on an infinite silent
+          loop. The mirror flag is forwarded through SectionFrame →
+          FadingVideo and is applied via a GPU-only `scaleX(-1)`
+          transform so there is zero CPU cost and the underlying
+          <video loop> attribute keeps the playback continuous. */}
+      <SectionFrame
+        id={SECTION_IDS.capabilities}
+        video={CAP_VIDEO}
+        mirror
+        className="landing-stack-section"
+      >
         <div className="relative flex min-h-screen flex-col px-8 pb-10 pt-24 md:px-16 lg:px-20">
           <header className="mb-auto">
             <SectionReveal>

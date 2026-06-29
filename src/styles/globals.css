@@ -663,13 +663,41 @@ body {
     min-width: 0;
   }
 
-  /* Sidebar: when collapsed on mobile let the toggle pill float in;
-     when expanded it becomes a regular stacked block so it doesn't
-     consume the entire viewport. */
-  .sidebar-panel {
-    width: 100% !important;
+  /* Task 3 — Sidebar on mobile is a *fixed* drawer.  When OPEN it
+     overlays the dashboard at full width.  When CLOSED it must
+     slide completely off-screen so the dashboard underneath becomes
+     visible, scrollable, and clickable again.  Without the
+     translateX-(100%) the panel kept blurring the dashboard via its
+     `liquid-glass` backdrop-filter even though the user had already
+     collapsed it. */
+  .sidebar-panel.sidebar-panel--open-mobile {
+    width: min(86vw, 320px) !important;
     min-width: 0 !important;
     max-height: none;
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-panel.sidebar-panel--closed-mobile {
+    width: min(86vw, 320px) !important;
+    min-width: 0 !important;
+    max-height: none;
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+    /* Hide the lingering backdrop-filter / box-shadow so nothing
+       remains visually over the dashboard. */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Belt-and-braces: if a stray ::before pseudo from .liquid-glass
+     ever survives in the closed state, neutralise it too. */
+  .sidebar-panel.sidebar-panel--closed-mobile::before,
+  .sidebar-panel.sidebar-panel--closed-mobile::after {
+    display: none !important;
   }
 
   /* Virtual grid still needs a bounded height so its inner scroller

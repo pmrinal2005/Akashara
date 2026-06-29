@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { viewPool } from '../../core/engine'
 import { workerBridge } from '../../core/WorkerBridge'
 import { COLUMNS, GRID_TEMPLATE, ROW_HEIGHT } from './columns'
@@ -18,6 +18,21 @@ export function GridHeader() {
       viewPool.setSort(next)
     }
   }
+
+  /* Task 2 — the dashboard-wide Reset button calls
+     `viewPool.setSort([{ field: 'roi_percent', dir: 'desc' }])` but the
+     header keeps its own local `sorts` state for fast re-render of the
+     sort indicators. Without this listener the local state never
+     resynced with the view-pool after a reset, so the up/down arrows
+     stayed pinned to whatever the user last clicked even though the
+     grid had already re-sorted. We listen to the broadcast event the
+     reset handler fires, then pull the canonical sorts back from the
+     view-pool — keeping every UI surface and the engine in lockstep. */
+  useEffect(() => {
+    const onReset = () => setSorts(viewPool.getSorts())
+    window.addEventListener('rpa-monitor:reset-filters', onReset)
+    return () => window.removeEventListener('rpa-monitor:reset-filters', onReset)
+  }, [])
 
   const handleClick = (field: SortableField, e: React.MouseEvent) => {
     const existingIdx = sorts.findIndex((s) => s.field === field)
